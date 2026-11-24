@@ -15,6 +15,7 @@ import {
   type NotebookState,
   type PeekCamp,
   type PeekResult,
+  type RoleStateUpdate,
   type Setup,
   type StartEvent,
   type TableStateId,
@@ -177,6 +178,24 @@ function parsePeekResult(raw: unknown): PeekResult | null {
   }
 }
 
+function parseRoleStateUpdates(raw: unknown): RoleStateUpdate[] | null {
+  if (!Array.isArray(raw)) {
+    return null
+  }
+  const updates: RoleStateUpdate[] = []
+  for (const entry of raw) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.field !== 'string' ||
+      !isTrackedValueShape(entry.value)
+    ) {
+      return null
+    }
+    updates.push({ field: entry.field, value: entry.value })
+  }
+  return updates
+}
+
 function parseInGameEvent(raw: unknown): InGameEvent | null {
   if (!isRecord(raw)) {
     return null
@@ -227,13 +246,20 @@ function parseInGameEvent(raw: unknown): InGameEvent | null {
       if (!isSeat(raw.inspectorSeat) || !isSeat(raw.targetSeat) || !result) {
         return null
       }
+      const updates =
+        raw.updates === undefined ? [] : parseRoleStateUpdates(raw.updates)
+      if (updates === null) {
+        return null
+      }
+      const base = {
+        type: 'peek' as const,
+        inspectorSeat: raw.inspectorSeat,
+        targetSeat: raw.targetSeat,
+        result,
+        ...(updates.length > 0 ? { updates } : {}),
+      }
       if (raw.targetSeats === undefined) {
-        return {
-          type: 'peek',
-          inspectorSeat: raw.inspectorSeat,
-          targetSeat: raw.targetSeat,
-          result,
-        }
+        return base
       }
       if (
         !Array.isArray(raw.targetSeats) ||
@@ -245,11 +271,8 @@ function parseInGameEvent(raw: unknown): InGameEvent | null {
         return null
       }
       return {
-        type: 'peek',
-        inspectorSeat: raw.inspectorSeat,
-        targetSeat: raw.targetSeat,
+        ...base,
         targetSeats: [...raw.targetSeats],
-        result,
       }
     }
     default:

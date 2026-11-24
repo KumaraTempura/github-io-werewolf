@@ -661,6 +661,50 @@ describe('in-game events', () => {
     expect(derivedOf(state).peeks).toHaveLength(3)
   })
 
+  it('applies peek role-state updates atomically', () => {
+    let state = started()
+
+    state = appendEvent(state, {
+      type: 'peek',
+      inspectorSeat: 4,
+      targetSeat: 2,
+      result: { kind: 'goodOrWolf', camp: 'wolf' },
+      updates: [
+        { field: 'checkedSeats', value: [2] },
+        { field: 'lastCheckTarget', value: 2 },
+        { field: 'lastCheckCamp', value: 'wolf' },
+      ],
+    })
+
+    expect(derivedOf(state).roleStateBySeat[4]).toEqual({
+      checkedSeats: [2],
+      lastCheckTarget: 2,
+      lastCheckCamp: 'wolf',
+    })
+
+    state = undoLast(state)
+
+    expect(derivedOf(state).roleStateBySeat[4]).toEqual({
+      checkedSeats: [],
+      lastCheckTarget: null,
+      lastCheckCamp: null,
+    })
+  })
+
+  it('rejects peek updates that do not belong to the inspector role', () => {
+    const state = started()
+
+    const rejected = appendEvent(state, {
+      type: 'peek',
+      inspectorSeat: 4,
+      targetSeat: 2,
+      result: { kind: 'goodOrWolf', camp: 'wolf' },
+      updates: [{ field: 'antidoteRemaining', value: 0 }],
+    })
+
+    expect(rejected).toBe(state)
+  })
+
   it('records multi-target peeks', () => {
     let state = started()
 

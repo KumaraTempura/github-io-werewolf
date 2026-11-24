@@ -69,6 +69,12 @@ export function isNightKillProtectionField(fieldKey: string): boolean {
   return NIGHT_KILL_PROTECTION_FIELDS.has(fieldKey)
 }
 
+const SHOT_FIELD_KEYS = new Set(['shotTarget'])
+
+export function isShotField(fieldKey: string): boolean {
+  return SHOT_FIELD_KEYS.has(fieldKey)
+}
+
 export function phaseLabel(cycle: number, phase: Phase): string {
   return phase === 'night' ? `第 ${cycle} 夜` : `第 ${cycle} 天 · 白天`
 }

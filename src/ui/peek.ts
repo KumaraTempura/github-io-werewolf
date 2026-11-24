@@ -1,5 +1,16 @@
-import { getRole, rolesById, type PeekKind, type Role } from '../data/catalog'
-import type { DerivedGame, PeekCamp, PeekResult } from '../game/state'
+import {
+  getRole,
+  rolesById,
+  type PeekKind,
+  type Role,
+  type TrackedState,
+} from '../data/catalog'
+import type {
+  DerivedGame,
+  PeekCamp,
+  PeekResult,
+  RoleStateUpdate,
+} from '../game/state'
 
 export type PeekTargetMode =
   | 'single'
@@ -208,6 +219,82 @@ export function initialPeekState(
     }
   }
   return { step: 'target', targetSeats: [], override: null, editing: false }
+}
+
+function checkedSeatsOf(state: TrackedState | undefined): number[] {
+  const value = state?.checkedSeats
+  return Array.isArray(value)
+    ? value.filter((seat): seat is number => typeof seat === 'number')
+    : []
+}
+
+function checkedPairsOf(state: TrackedState | undefined): [number, number][] {
+  const value = state?.checkedPairs
+  return Array.isArray(value)
+    ? value.filter(
+        (entry): entry is [number, number] =>
+          Array.isArray(entry) &&
+          entry.length === 2 &&
+          entry.every((seat) => typeof seat === 'number'),
+      )
+    : []
+}
+
+export function peekRoleStateUpdates(
+  role: Role,
+  current: TrackedState | undefined,
+  targetSeats: readonly number[],
+  result: PeekResult,
+): RoleStateUpdate[] {
+  const fieldKeys = new Set(role.trackedFields.map((field) => field.key))
+  const targets = [...targetSeats].sort((a, b) => a - b)
+  const firstTarget = targets[0]
+  const updates: RoleStateUpdate[] = []
+
+  if (fieldKeys.has('checkedSeats') && targets.length > 0) {
+    const existing = checkedSeatsOf(current)
+    updates.push({
+      field: 'checkedSeats',
+      value: [...new Set([...existing, ...targets])].sort((a, b) => a - b),
+    })
+  }
+
+  if (fieldKeys.has('checkedPairs') && targets.length === 2) {
+    const pair: [number, number] = [targets[0], targets[1]]
+    const existing = checkedPairsOf(current)
+    if (!existing.some((entry) => entry[0] === pair[0] && entry[1] === pair[1])) {
+      updates.push({ field: 'checkedPairs', value: [...existing, pair] })
+    }
+  }
+
+  if (fieldKeys.has('lastCheckTarget') && firstTarget !== undefined) {
+    updates.push({ field: 'lastCheckTarget', value: firstTarget })
+  }
+
+  if (fieldKeys.has('lastCheckCamp') && result.kind === 'goodOrWolf') {
+    updates.push({ field: 'lastCheckCamp', value: result.camp })
+  }
+
+  if (fieldKeys.has('lastCheckRole') && result.kind === 'exactRole') {
+    updates.push({ field: 'lastCheckRole', value: result.roleId })
+  }
+
+  if (fieldKeys.has('lastPair') && targets.length === 2) {
+    updates.push({ field: 'lastPair', value: targets })
+  }
+
+  if (
+    fieldKeys.has('lastPairResult') &&
+    result.kind === 'goodOrWolf' &&
+    targets.length === 2
+  ) {
+    updates.push({
+      field: 'lastPairResult',
+      value: result.camp === 'wolf' ? 'containsWolf' : 'good',
+    })
+  }
+
+  return updates
 }
 
 export function hasEnoughTargets(plan: PeekPlan, count: number): boolean {

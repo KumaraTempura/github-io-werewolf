@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getRole } from '../data/catalog'
+import { getRole, initialTrackedState } from '../data/catalog'
 import {
   appendEvent,
   createDraft,
@@ -15,6 +15,7 @@ import {
   hasEnoughTargets,
   initialPeekState,
   lastExiledSeat,
+  peekRoleStateUpdates,
   planPeek,
 } from './peek'
 
@@ -177,6 +178,85 @@ describe('computeCatalogResult', () => {
 
     expect(lastExiledSeat(game)).toBeNull()
     expect(computeCatalogResult(game, 7, [])).toBeNull()
+  })
+})
+
+describe('peekRoleStateUpdates', () => {
+  function roleOf(id: string) {
+    const role = getRole(id)
+    if (!role) {
+      throw new Error(`missing role ${id}`)
+    }
+    return role
+  }
+
+  it('records the seer check target and camp', () => {
+    const role = roleOf('seer')
+
+    expect(
+      peekRoleStateUpdates(role, initialTrackedState(role), [1], {
+        kind: 'goodOrWolf',
+        camp: 'wolf',
+      }),
+    ).toEqual([
+      { field: 'checkedSeats', value: [1] },
+      { field: 'lastCheckTarget', value: 1 },
+      { field: 'lastCheckCamp', value: 'wolf' },
+    ])
+  })
+
+  it('merges new checked seats with the existing list', () => {
+    const role = roleOf('seer')
+    const current = initialTrackedState(role)
+    current.checkedSeats = [2, 3]
+
+    expect(
+      peekRoleStateUpdates(role, current, [1], {
+        kind: 'goodOrWolf',
+        camp: 'good',
+      })[0],
+    ).toEqual({ field: 'checkedSeats', value: [1, 2, 3] })
+  })
+
+  it('records awakened seer pairs', () => {
+    const role = roleOf('awakened-seer')
+
+    expect(
+      peekRoleStateUpdates(role, initialTrackedState(role), [1, 12], {
+        kind: 'goodOrWolf',
+        camp: 'wolf',
+      }),
+    ).toEqual([
+      { field: 'checkedPairs', value: [[1, 12]] },
+      { field: 'lastPair', value: [1, 12] },
+      { field: 'lastPairResult', value: 'containsWolf' },
+    ])
+  })
+
+  it('records exact roles for the mirror maiden', () => {
+    const role = roleOf('mirror-maiden')
+
+    expect(
+      peekRoleStateUpdates(role, initialTrackedState(role), [10], {
+        kind: 'exactRole',
+        roleId: 'seer',
+      }),
+    ).toEqual([
+      { field: 'checkedSeats', value: [10] },
+      { field: 'lastCheckTarget', value: 10 },
+      { field: 'lastCheckRole', value: 'seer' },
+    ])
+  })
+
+  it('leaves non-check peeks alone', () => {
+    const gravekeeper = roleOf('gravekeeper')
+
+    expect(
+      peekRoleStateUpdates(gravekeeper, initialTrackedState(gravekeeper), [4], {
+        kind: 'lastExileCamp',
+        camp: 'good',
+      }),
+    ).toEqual([])
   })
 })
 

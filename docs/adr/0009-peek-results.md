@@ -1,6 +1,6 @@
 # Peek results and custom fallback
 
-Status: partly superseded by ADR-0011 (peek starts from a seat; any-role custom peek retired).
+Status: partly superseded by ADR-0011 (peek starts from a seat; any-role custom peek retired) and ADR-0013 (check fields update with the peek).
 
 The peek flow derives the shown result from the inspecting role's catalog `peekKind` against the current derived game: exact role (with the mirror maiden seeing a mimicked awakened hidden wolf's mimicked role), good/wolf camp, teammate numbers, or the last exiled player's camp. The judge chooses the inspector and the target seats; for teammate-number peeks the selected seats are the numbers revealed, so 尋香魅影 can reveal one and 狼鴉之爪 can reveal every known wolf. A single-target peek can be one-tap overridden to the target's exact role.
 
@@ -12,4 +12,4 @@ Peek events keep `targetSeat` as the primary target and may add `targetSeats` wh
 
 - Peek history is a record of what the judge presented, not a rules lookup.
 - Undo removes the record but cannot unsee the result, so undoing a peek asks for confirmation.
-- Tracked role fields stay manual; a peek does not append role-state events.
+- A peek carries the inspector's check-field updates in the same event; other tracked fields stay manual.

@@ -28,6 +28,7 @@ import {
   formatTrackedValue,
   hasCatalogAbility,
   isNightKillProtectionField,
+  isShotField,
   logCycles,
   peekActionLabel,
   phaseLabel,
@@ -322,6 +323,13 @@ function SeatSheet({ seat, game, dispatch, onPeek, onClose }: SeatSheetProps) {
       )
     ) {
       dispatch({ type: 'game/append', event: { type: 'revive', seat: value } })
+    }
+    if (
+      isShotField(field.key) &&
+      typeof value === 'number' &&
+      !game.outPlayers.some((player) => player.seat === value)
+    ) {
+      dispatch({ type: 'game/append', event: { type: 'elimination', seat: value, reason: 'shot' } })
     }
   }
 

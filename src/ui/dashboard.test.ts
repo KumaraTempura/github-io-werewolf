@@ -14,6 +14,7 @@ import {
   formatTrackedValue,
   hasCatalogAbility,
   isNightKillProtectionField,
+  isShotField,
   logCycles,
   peekActionLabel,
   phaseLabel,
@@ -115,6 +116,14 @@ describe('isNightKillProtectionField', () => {
     expect(isNightKillProtectionField('protectedSeat')).toBe(true)
     expect(isNightKillProtectionField('poisonedSeat')).toBe(false)
     expect(isNightKillProtectionField('lastGuardedSeat')).toBe(false)
+  })
+})
+
+describe('isShotField', () => {
+  it('recognizes the shot target fields', () => {
+    expect(isShotField('shotTarget')).toBe(true)
+    expect(isShotField('shotUsed')).toBe(false)
+    expect(isShotField('guardLastTarget')).toBe(false)
   })
 })
 

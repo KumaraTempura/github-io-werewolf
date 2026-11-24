@@ -150,6 +150,57 @@ describe('storage', () => {
     expect(loadNotebook(invalidDraft)).toEqual(createNotebook())
   })
 
+  it('round-trips peek role-state updates', () => {
+    const storage = new MemoryStorage()
+    let state = playingState()
+    state = appendEvent(state, {
+      type: 'peek',
+      inspectorSeat: 4,
+      targetSeat: 2,
+      result: { kind: 'goodOrWolf', camp: 'wolf' },
+      updates: [
+        { field: 'checkedSeats', value: [2] },
+        { field: 'lastCheckTarget', value: 2 },
+        { field: 'lastCheckCamp', value: 'wolf' },
+      ],
+    })
+
+    expect(saveNotebook(state, storage)).toBe(true)
+    const loaded = loadNotebook(storage)
+
+    expect(loaded).toEqual(state)
+    expect(deriveGame(loaded.events)?.roleStateBySeat[4]).toMatchObject({
+      checkedSeats: [2],
+      lastCheckTarget: 2,
+      lastCheckCamp: 'wolf',
+    })
+  })
+
+  it('rejects peek updates for a role that does not own the field', () => {
+    const storage = new MemoryStorage()
+    const state = playingState()
+    const start = state.events[0]
+    storage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        draft: state.draft,
+        events: [
+          start,
+          {
+            type: 'peek',
+            inspectorSeat: 4,
+            targetSeat: 2,
+            result: { kind: 'goodOrWolf', camp: 'wolf' },
+            updates: [{ field: 'antidoteRemaining', value: 0 }],
+          },
+        ],
+      }),
+    )
+
+    expect(loadNotebook(storage)).toEqual(createNotebook())
+  })
+
   it('round-trips a revive', () => {
     const storage = new MemoryStorage()
     let state = playingState()

@@ -9,6 +9,7 @@ import {
   hasEnoughTargets,
   initialPeekState,
   lastExiledSeat,
+  peekRoleStateUpdates,
   planPeek,
   type PeekPlan,
 } from './peek'
@@ -120,9 +121,15 @@ export default function PeekFlow({
   }
 
   function finish() {
-    if (!result) {
+    if (!result || !role) {
       return
     }
+    const updates = peekRoleStateUpdates(
+      role,
+      game.roleStateBySeat[inspectorSeat],
+      seats,
+      result,
+    )
     dispatch({
       type: 'game/append',
       event: {
@@ -131,6 +138,7 @@ export default function PeekFlow({
         targetSeat: seats[0],
         ...(seats.length > 1 ? { targetSeats: seats } : {}),
         result,
+        ...(updates.length > 0 ? { updates } : {}),
       },
     })
     onClose()

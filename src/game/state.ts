@@ -162,12 +162,18 @@ export interface ReviveEvent {
   seat: number
 }
 
+export interface RoleStateUpdate {
+  field: string
+  value: TrackedFieldValue
+}
+
 export interface PeekEvent {
   type: 'peek'
   inspectorSeat: number
   targetSeat: number
   targetSeats?: number[]
   result: PeekResult
+  updates?: readonly RoleStateUpdate[]
 }
 
 export type InGameEvent =
@@ -405,6 +411,37 @@ function isValidPeekResult(result: PeekResult, playerCount: number): boolean {
   }
 }
 
+function normalizePeekUpdates(
+  updates: readonly RoleStateUpdate[] | undefined,
+  derived: DerivedGame,
+  inspectorSeat: number,
+): RoleStateUpdate[] | null {
+  const role = getRole(derived.seatRoles[inspectorSeat] ?? '')
+  if (!role) {
+    return null
+  }
+  if (updates === undefined) {
+    return []
+  }
+  const seen = new Set<string>()
+  const normalized: RoleStateUpdate[] = []
+  for (const update of updates) {
+    if (typeof update.field !== 'string' || seen.has(update.field)) {
+      return null
+    }
+    const field = role.trackedFields.find((entry) => entry.key === update.field)
+    if (!field || !isValidTrackedValue(field, update.value)) {
+      return null
+    }
+    seen.add(update.field)
+    normalized.push({
+      field: field.key,
+      value: cloneTrackedValue(update.value),
+    })
+  }
+  return normalized
+}
+
 function normalizeEvent(event: InGameEvent, derived: DerivedGame): InGameEvent | null {
   const { playerCount } = derived.setup
   switch (event.type) {
@@ -498,6 +535,21 @@ function normalizeEvent(event: InGameEvent, derived: DerivedGame): InGameEvent |
       ) {
         return null
       }
+      const updates = normalizePeekUpdates(
+        event.updates,
+        derived,
+        event.inspectorSeat,
+      )
+      if (updates === null) {
+        return null
+      }
+      const base = {
+        type: 'peek' as const,
+        inspectorSeat: event.inspectorSeat,
+        targetSeat: event.targetSeat,
+        result: clonePeekResult(event.result),
+        ...(updates.length > 0 ? { updates } : {}),
+      }
       if (event.targetSeats !== undefined) {
         if (
           event.targetSeats.length === 0 ||
@@ -508,19 +560,11 @@ function normalizeEvent(event: InGameEvent, derived: DerivedGame): InGameEvent |
           return null
         }
         return {
-          type: 'peek',
-          inspectorSeat: event.inspectorSeat,
-          targetSeat: event.targetSeat,
+          ...base,
           targetSeats: [...event.targetSeats],
-          result: clonePeekResult(event.result),
         }
       }
-      return {
-        type: 'peek',
-        inspectorSeat: event.inspectorSeat,
-        targetSeat: event.targetSeat,
-        result: clonePeekResult(event.result),
-      }
+      return base
     }
   }
 }
@@ -634,6 +678,12 @@ export function deriveGame(events: readonly GameEvent[]): DerivedGame | null {
           entry.targetSeats = [...event.targetSeats]
         }
         peeks.push(entry)
+        const roleState = roleStateBySeat[event.inspectorSeat]
+        if (roleState && event.updates) {
+          for (const update of event.updates) {
+            roleState[update.field] = cloneTrackedValue(update.value)
+          }
+        }
         break
       }
       case 'start':

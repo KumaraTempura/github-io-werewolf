@@ -91,6 +91,11 @@ describe('PeekFlow', () => {
         targetSeat: 1,
         targetSeats: [1, 12],
         result: { kind: 'goodOrWolf', camp: 'wolf' },
+        updates: [
+          { field: 'checkedPairs', value: [[1, 12]] },
+          { field: 'lastPair', value: [1, 12] },
+          { field: 'lastPairResult', value: 'containsWolf' },
+        ],
       },
     })
     expect(onClose).toHaveBeenCalled()
