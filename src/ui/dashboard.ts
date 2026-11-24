@@ -42,6 +42,7 @@ const EVENT_KIND_LABELS: Readonly<Record<GameEvent['type'], string>> = {
   elimination: '出局',
   note: '備註',
   phase: '階段',
+  revive: '復活',
   peek: '查驗',
 }
 
@@ -55,6 +56,17 @@ export function peekActionLabel(kind: PeekActionKind): string {
 
 export function hasCatalogAbility(role: Role): boolean {
   return role.trackedFields.length > 0 || role.peekKind !== 'none'
+}
+
+const NIGHT_KILL_PROTECTION_FIELDS = new Set([
+  'savedSeat',
+  'snakeSavedSeat',
+  'guardedSeat',
+  'protectedSeat',
+])
+
+export function isNightKillProtectionField(fieldKey: string): boolean {
+  return NIGHT_KILL_PROTECTION_FIELDS.has(fieldKey)
 }
 
 export function phaseLabel(cycle: number, phase: Phase): string {
@@ -228,6 +240,8 @@ export function describeEvent(event: GameEvent, setup: Setup): string {
       return `${event.seat} 號 ${seatRoleName(setup, event.seat)} 出局（${
         ELIMINATION_REASON_LABELS[event.reason]
       }）`
+    case 'revive':
+      return `${event.seat} 號 ${seatRoleName(setup, event.seat)} · 復活`
     case 'note':
       return event.seat === null ? event.text : `${event.seat} 號 · ${event.text}`
     case 'phase':

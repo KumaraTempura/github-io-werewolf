@@ -13,6 +13,7 @@ import {
   formatPeekResult,
   formatTrackedValue,
   hasCatalogAbility,
+  isNightKillProtectionField,
   logCycles,
   peekActionLabel,
   phaseLabel,
@@ -106,6 +107,17 @@ describe('peekActionLabel', () => {
   })
 })
 
+describe('isNightKillProtectionField', () => {
+  it('recognizes the current-night prevention targets', () => {
+    expect(isNightKillProtectionField('savedSeat')).toBe(true)
+    expect(isNightKillProtectionField('snakeSavedSeat')).toBe(true)
+    expect(isNightKillProtectionField('guardedSeat')).toBe(true)
+    expect(isNightKillProtectionField('protectedSeat')).toBe(true)
+    expect(isNightKillProtectionField('poisonedSeat')).toBe(false)
+    expect(isNightKillProtectionField('lastGuardedSeat')).toBe(false)
+  })
+})
+
 describe('hasCatalogAbility', () => {
   it('is false only for a role with no tracked fields and no peek', () => {
     const seer = getRole('seer')
@@ -196,6 +208,9 @@ describe('describeEvent', () => {
     expect(
       describeEvent({ type: 'phase', cycle: 2, phase: 'night' }, SETUP),
     ).toBe('第 2 夜開始')
+    expect(describeEvent({ type: 'revive', seat: 8 }, SETUP)).toBe(
+      '8 號 平民 · 復活',
+    )
     expect(
       describeEvent(
         {

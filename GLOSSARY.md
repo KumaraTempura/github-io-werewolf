@@ -65,7 +65,7 @@ The append-only record of judge-entered events. It does not validate or enforce 
 _Avoid_: Engine, simulator
 
 **Event** (事件):
-One judge-recorded action or change: deal, phase advance, ability use, peek, elimination, table-state change, or note. Undo removes the last event.
+One judge-recorded action or change: deal, phase advance, ability use, peek, elimination, revive, table-state change, or note. Undo removes the last event.
 _Avoid_: Action, log entry, step
 
 **Table state** (場上狀態):
@@ -75,6 +75,10 @@ _Avoid_: Status, effect, buff
 **Out** (出局):
 A player removed from the game, with a recorded reason.
 _Avoid_: Dead, eliminated
+
+**Revive** (復活):
+A judge-recorded return of an out player to play, usually from a night-kill prevention ability such as the witch's antidote or 法老之蛇. It is an event, not a role-state flag.
+_Avoid_: Resurrect, save
 
 **Peek** (查驗):
 A private, role-aware reveal to the player using an inspection ability: exact role, camp, teammate number, or last-exile camp.

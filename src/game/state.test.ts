@@ -513,6 +513,42 @@ describe('in-game events', () => {
     ])
   })
 
+  it('revives an out player', () => {
+    let state = started()
+
+    state = appendEvent(state, { type: 'elimination', seat: 5, reason: 'nightKill' })
+    state = appendEvent(state, { type: 'revive', seat: 5 })
+
+    expect(derivedOf(state).outPlayers).toEqual([])
+    expect(state.events).toHaveLength(3)
+  })
+
+  it('rejects a revive when the seat is not out', () => {
+    const state = started()
+
+    expect(appendEvent(state, { type: 'revive', seat: 5 })).toBe(state)
+  })
+
+  it('allows a second elimination after a revive', () => {
+    let state = started()
+
+    state = appendEvent(state, { type: 'elimination', seat: 5, reason: 'nightKill' })
+    state = appendEvent(state, { type: 'revive', seat: 5 })
+    state = appendEvent(state, { type: 'elimination', seat: 5, reason: 'exile' })
+
+    expect(derivedOf(state).outPlayers).toEqual([{ seat: 5, reason: 'exile' }])
+  })
+
+  it('undoes a revive', () => {
+    let state = started()
+
+    state = appendEvent(state, { type: 'elimination', seat: 5, reason: 'nightKill' })
+    state = appendEvent(state, { type: 'revive', seat: 5 })
+    state = undoLast(state)
+
+    expect(derivedOf(state).outPlayers).toEqual([{ seat: 5, reason: 'nightKill' }])
+  })
+
   it('accepts every elimination reason', () => {
     const reasons = [
       'nightKill',

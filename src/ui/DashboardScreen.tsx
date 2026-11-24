@@ -27,6 +27,7 @@ import {
   eventKindLabel,
   formatTrackedValue,
   hasCatalogAbility,
+  isNightKillProtectionField,
   logCycles,
   peekActionLabel,
   phaseLabel,
@@ -313,10 +314,23 @@ function SeatSheet({ seat, game, dispatch, onPeek, onClose }: SeatSheetProps) {
       type: 'game/append',
       event: { type: 'roleState', seat, field: field.key, value },
     })
+    if (
+      isNightKillProtectionField(field.key) &&
+      typeof value === 'number' &&
+      game.outPlayers.some(
+        (player) => player.seat === value && player.reason === 'nightKill',
+      )
+    ) {
+      dispatch({ type: 'game/append', event: { type: 'revive', seat: value } })
+    }
   }
 
   function eliminate(reason: EliminationReason) {
     dispatch({ type: 'game/append', event: { type: 'elimination', seat, reason } })
+  }
+
+  function revive() {
+    dispatch({ type: 'game/append', event: { type: 'revive', seat } })
   }
 
   return (
@@ -354,6 +368,16 @@ function SeatSheet({ seat, game, dispatch, onPeek, onClose }: SeatSheetProps) {
           <div className="out-banner" role="status">
             <span className="out-banner__label">已出局</span>
             <strong>{ELIMINATION_REASON_LABELS[out.reason]}</strong>
+            {out.reason === 'nightKill' ? (
+              <button
+                type="button"
+                className="revive-btn"
+                aria-label={`座位 ${seat} 復活`}
+                onClick={revive}
+              >
+                復活
+              </button>
+            ) : null}
             <p className="sheet-note">
               復原只移除最後一筆事件；若要更正較早的紀錄，需先復原它之後的事件。
             </p>

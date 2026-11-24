@@ -150,6 +150,31 @@ describe('storage', () => {
     expect(loadNotebook(invalidDraft)).toEqual(createNotebook())
   })
 
+  it('round-trips a revive', () => {
+    const storage = new MemoryStorage()
+    let state = playingState()
+    state = appendEvent(state, { type: 'revive', seat: 2 })
+
+    expect(saveNotebook(state, storage)).toBe(true)
+    expect(loadNotebook(storage)).toEqual(state)
+  })
+
+  it('rejects reviving a seat that is not out', () => {
+    const storage = new MemoryStorage()
+    const state = playingState()
+    const start = state.events[0]
+    storage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        draft: state.draft,
+        events: [start, { type: 'revive', seat: 1 }],
+      }),
+    )
+
+    expect(loadNotebook(storage)).toEqual(createNotebook())
+  })
+
   it('rejects an out-of-order phase event', () => {
     const storage = new MemoryStorage()
     const state = playingState()

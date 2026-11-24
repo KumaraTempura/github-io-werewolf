@@ -157,6 +157,11 @@ export interface PhaseEvent extends PhaseState {
   type: 'phase'
 }
 
+export interface ReviveEvent {
+  type: 'revive'
+  seat: number
+}
+
 export interface PeekEvent {
   type: 'peek'
   inspectorSeat: number
@@ -172,6 +177,7 @@ export type InGameEvent =
   | EliminationEvent
   | NoteEvent
   | PhaseEvent
+  | ReviveEvent
   | PeekEvent
 
 export type GameEvent = StartEvent | InGameEvent
@@ -475,6 +481,15 @@ function normalizeEvent(event: InGameEvent, derived: DerivedGame): InGameEvent |
       }
       return { type: 'phase', cycle: event.cycle, phase: event.phase }
     }
+    case 'revive': {
+      if (
+        !isSeatInGame(event.seat, playerCount) ||
+        !derived.outPlayers.some((player) => player.seat === event.seat)
+      ) {
+        return null
+      }
+      return { type: 'revive', seat: event.seat }
+    }
     case 'peek': {
       if (
         !isSeatInGame(event.inspectorSeat, playerCount) ||
@@ -602,6 +617,13 @@ export function deriveGame(events: readonly GameEvent[]): DerivedGame | null {
       case 'phase':
         currentPhase = { cycle: event.cycle, phase: event.phase }
         break
+      case 'revive': {
+        const index = outPlayers.findIndex((player) => player.seat === event.seat)
+        if (index >= 0) {
+          outPlayers.splice(index, 1)
+        }
+        break
+      }
       case 'peek': {
         const entry: PeekEntry = {
           inspectorSeat: event.inspectorSeat,

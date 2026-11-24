@@ -220,6 +220,8 @@ function parseInGameEvent(raw: unknown): InGameEvent | null {
         (raw.phase === 'night' || raw.phase === 'daytime')
         ? { type: 'phase', cycle: raw.cycle as number, phase: raw.phase }
         : null
+    case 'revive':
+      return isSeat(raw.seat) ? { type: 'revive', seat: raw.seat } : null
     case 'peek': {
       const result = parsePeekResult(raw.result)
       if (!isSeat(raw.inspectorSeat) || !isSeat(raw.targetSeat) || !result) {
