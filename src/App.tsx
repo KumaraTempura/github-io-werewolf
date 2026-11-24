@@ -34,6 +34,7 @@ export default function App() {
     return (
       <DashboardScreen
         game={state.game}
+        onToggleOut={(seat) => dispatch({ type: 'game/toggleOut', seat })}
         onReset={() => {
           dispatch({ type: 'game/reset' })
           setScreen('setup')

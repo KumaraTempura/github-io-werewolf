@@ -735,9 +735,34 @@ optgroup {
 }
 
 .game-seat.is-out {
-  opacity: 0.55;
   border-style: dashed;
+  border-color: #4a2a2e;
   background: #101728;
+}
+
+.game-seat__out-toggle {
+  margin-left: auto;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0a1020;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.game-seat__out-toggle.is-on {
+  border-color: #6a3430;
+  background: #3a1c1a;
+  color: #f0b4ad;
+}
+
+.game-seat__out-marker {
+  margin-top: 2px;
+  color: #f0a29a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .game-seat__top {

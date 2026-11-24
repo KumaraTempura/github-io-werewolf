@@ -231,6 +231,28 @@ describe('App', () => {
     )
   })
 
+  it('marks a seat out and back in with a visible marker and alive count', () => {
+    const { container } = startPhysicalGame()
+
+    const toggle = screen.getByRole('button', { name: '座位 1 出局' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(within(seatCard(1)).queryByText('已出局')).not.toBeInTheDocument()
+
+    fireEvent.click(toggle)
+
+    expect(aliveCount(container)).toBe('8 / 9 在場')
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    expect(within(seatCard(1)).getByText('已出局')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人')).toBeInTheDocument()
+
+    fireEvent.click(toggle)
+
+    expect(aliveCount(container)).toBe('9 / 9 在場')
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(within(seatCard(1)).queryByText('已出局')).not.toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人')).toBeInTheDocument()
+  })
+
   it('resets to the default standard 333 setup only after confirmation', async () => {
     startPhysicalGame()
 

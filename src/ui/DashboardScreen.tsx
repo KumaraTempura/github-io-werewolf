@@ -4,11 +4,13 @@ import type { ActiveGame, Setup } from '../game/state'
 
 interface DashboardScreenProps {
   game: ActiveGame
+  onToggleOut: (seat: number) => void
   onReset: () => void
 }
 
 export default function DashboardScreen({
   game,
+  onToggleOut,
   onReset,
 }: DashboardScreenProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
@@ -75,9 +77,21 @@ export default function DashboardScreen({
                       aria-hidden="true"
                     />
                   ) : null}
+                  <button
+                    type="button"
+                    className={`game-seat__out-toggle${seat.out ? ' is-on' : ''}`}
+                    aria-label={`座位 ${seatNumber} 出局`}
+                    aria-pressed={seat.out}
+                    onClick={() => onToggleOut(seatNumber)}
+                  >
+                    出局
+                  </button>
                 </span>
                 <span className="game-seat__role">{role?.name ?? '—'}</span>
                 <span className="game-seat__camp">{role?.camp ?? '—'}</span>
+                {seat.out ? (
+                  <span className="game-seat__out-marker">已出局</span>
+                ) : null}
               </article>
             )
           })}
