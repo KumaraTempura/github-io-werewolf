@@ -579,13 +579,6 @@ optgroup {
   letter-spacing: 0.08em;
 }
 
-.judge-reveal__ability {
-  max-width: 28em;
-  color: #aab3cc;
-  font-size: 14px;
-  line-height: 1.9;
-}
-
 .judge-reveal > button {
   margin-top: 38px;
   padding: 16px 44px;

@@ -7,6 +7,26 @@ function setup() {
   return render(<App />)
 }
 
+function chooseCustomBoard(playerCount: number) {
+  fireEvent.change(screen.getByLabelText('板子'), {
+    target: { value: 'custom' },
+  })
+  const currentCount = screen.getAllByLabelText(/^座位 \d+ 角色$/).length
+  for (let count = currentCount; count > playerCount; count -= 1) {
+    fireEvent.click(screen.getByRole('button', { name: '減少人數' }))
+  }
+}
+
+function expectHiddenWolfAfterAwakenedHiddenWolf(select: HTMLElement) {
+  const options = within(select)
+    .getAllByRole('option')
+    .map((option) => option.textContent?.trim())
+  const hiddenIndex = options.indexOf('隱狼')
+
+  expect(hiddenIndex).toBeGreaterThan(-1)
+  expect(options[hiddenIndex - 1]).toBe('覺醒隱狼')
+}
+
 afterEach(() => {
   cleanup()
 })
@@ -132,11 +152,7 @@ describe('App', () => {
 
   it('builds a custom board with a clamped player count and required roles', () => {
     setup()
-
-    fireEvent.change(screen.getByLabelText('板子'), {
-      target: { value: 'custom' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '減少人數' }))
+    chooseCustomBoard(8)
 
     expect(screen.getAllByLabelText(/^座位 \d+ 角色$/)).toHaveLength(8)
 
@@ -152,6 +168,36 @@ describe('App', () => {
       target: { value: 'seer' },
     })
     expect(primary).toBeEnabled()
+  })
+
+  it('offers the hidden wolf immediately after the awakened hidden wolf', () => {
+    setup()
+    fireEvent.click(screen.getByRole('button', { name: '實體發牌' }))
+    expectHiddenWolfAfterAwakenedHiddenWolf(screen.getByLabelText('座位 1 角色'))
+
+    chooseCustomBoard(9)
+    expectHiddenWolfAfterAwakenedHiddenWolf(screen.getByLabelText('座位 1 角色'))
+  })
+
+  it('deals the hidden wolf and reveals only its role and camp', () => {
+    setup()
+    chooseCustomBoard(7)
+    fireEvent.change(screen.getByLabelText('座位 1 角色'), {
+      target: { value: 'hidden-wolf' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '發牌（數位）' }))
+
+    const seat = screen
+      .getAllByRole('button', { name: /^座位 \d+$/ })
+      .find((button) => within(button).queryByText('隱狼'))
+    if (!seat) throw new Error('hidden wolf seat not found')
+    const seatNumber = seat.getAttribute('aria-label')?.replace('座位 ', '')
+    fireEvent.click(seat)
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      `數位發牌 · 只給 ${seatNumber} 號看狼人陣營隱狼完成取消出示`,
+    )
   })
 })
 

@@ -224,7 +224,6 @@ export default function DealScreen({
           </p>
           <p className="judge-reveal__camp">{activeRole.camp}</p>
           <h1>{activeRole.name}</h1>
-          <p className="judge-reveal__ability">{activeRole.ability}</p>
           <button type="button" autoFocus onClick={finishReveal}>
             完成
           </button>

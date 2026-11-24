@@ -21,7 +21,7 @@ describe('role catalog', () => {
   })
 
   it('contains every researched role and preset board', () => {
-    expect(roles).toHaveLength(39)
+    expect(roles).toHaveLength(40)
     expect(presetBoards).toHaveLength(36)
     expect(new Set(roles.map((role) => role.id)).size).toBe(roles.length)
     expect(new Set(presetBoards.map((board) => board.id)).size).toBe(
@@ -64,6 +64,10 @@ describe('role catalog', () => {
     })
     expect(getRole('bear-tamer')).toBeDefined()
     expect(getRole('bear-tamer')?.firstNightOnly).toBe(true)
+    expect(getRole('hidden-wolf')).toMatchObject({
+      name: '隱狼',
+      campKey: 'wolf',
+    })
   })
 
   it('looks up roles and presets by id', () => {
@@ -83,11 +87,13 @@ describe('role catalog', () => {
     })
   })
 
-  it('includes the catalog-only role in no preset board', () => {
-    const inPresets = presetBoards.some((board) =>
-      board.roles.some((entry) => entry.roleId === 'bear-tamer'),
-    )
-    expect(inPresets).toBe(false)
+  it('includes the catalog-only roles in no preset board', () => {
+    for (const roleId of ['bear-tamer', 'hidden-wolf']) {
+      const inPresets = presetBoards.some((board) =>
+        board.roles.some((entry) => entry.roleId === roleId),
+      )
+      expect(inPresets, roleId).toBe(false)
+    }
   })
 
   it('derives independent initial tracked state per role', () => {

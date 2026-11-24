@@ -3,7 +3,7 @@
     "sourcePdf": "20260925100539_001.pdf",
     "sourceOcr": "rulebook-ocr.txt",
     "language": "zh-Hant",
-    "roleCount": 39,
+    "roleCount": 40,
     "presetCount": 36,
     "roleSourcePages": "16-21",
     "presetSourcePages": "3-11",
@@ -150,6 +150,23 @@
       "wakeOrder": { "firstNight": 19, "laterNight": 20, "firstNightSecondAction": null, "laterNightSecondAction": null },
       "sourcePage": 16,
       "notes": "模仿技能僅一次；模仿後獲得目標技能。"
+    },
+    {
+      "id": "hidden-wolf",
+      "name": "隱狼",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "不進入狼窩，不能自曝，不知其他狼人身份，其他狼人也不知其身份；其餘狼人出局後可在夜間攻擊。",
+      "trackedFields": [],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "conditional",
+      "wolfDiscussion": "separate",
+      "wakeOrder": { "firstNight": null, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "規則書未列出獨立喚醒順序。"
     },
     {
       "id": "wolf-king",
