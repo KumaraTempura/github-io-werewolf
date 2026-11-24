@@ -1,0 +1,1400 @@
+{
+  "meta": {
+    "sourcePdf": "20260925100539_001.pdf",
+    "sourceOcr": "rulebook-ocr.txt",
+    "language": "zh-Hant",
+    "roleCount": 39,
+    "presetCount": 36,
+    "roleSourcePages": "16-21",
+    "presetSourcePages": "3-11",
+    "wakeOrderSourcePages": [12, 13, 14],
+    "nonRoleWakeEntries": [
+      {
+        "name": "幸運兒",
+        "firstNight": 25,
+        "laterNight": null,
+        "note": "奇蹟商人賦予技能後的臨時身份；不是角色目錄中的角色。"
+      }
+    ],
+    "notes": [
+      "陣營值使用規則書原文；campKey 供程式使用。",
+      "wakeOrder 為 PDF 第 12-14 頁的喚醒順序；firstNightSecondAction 與 laterNightSecondAction 只供煉金魔女使用。",
+      "firstNightOnly 表示該角色只在首夜有喚醒動作；部分角色的首夜喚醒只是舉手示意身份，實際技能在白天或被動觸發。",
+      "nightAction 是對喚醒性質的補充：firstNightOnly、secondNightOnward、everyNight、conditional、none。"
+    ]
+  },
+  "roles": [
+    {
+      "id": "wolf",
+      "name": "狼人",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "每天夜裡可以與狼隊一同攻擊一名玩家。",
+      "trackedFields": [
+        { "key": "killTarget", "label": "本夜襲擊目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 14, "laterNight": 15, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": null
+    },
+    {
+      "id": "wolf-beauty",
+      "name": "狼美人",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "夜裡可以魅惑一名玩家；天亮後若狼美人出局（被放逐、被投毒、被槍擊），被魅惑者跟隨出局且無法發動技能。被魅惑者不知情。",
+      "trackedFields": [
+        { "key": "charmTarget", "label": "魅惑目標", "type": "seat", "initial": null },
+        { "key": "charmResolved", "label": "魅惑已結算", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 16, "laterNight": 17, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "被魅惑者不知情；跟隨出局且無法發動技能。"
+    },
+    {
+      "id": "blood-moon-apostle",
+      "name": "血月使徒",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "自曝後直接進入黑夜，當晚所有神職技能被封印；若為最後一個狼人，自曝則遊戲結束。若是最後一個被放逐出局的狼人，可翻牌並存活到下一個白天天亮之後才死亡。",
+      "trackedFields": [
+        { "key": "selfExposed", "label": "已自曝", "type": "boolean", "initial": false },
+        { "key": "sealActive", "label": "神職技能封印中", "type": "boolean", "initial": false },
+        { "key": "delayedDeathPending", "label": "延遲死亡待結算", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 32, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "首夜僅舉手示意身份；自曝與延遲死亡規則見 FAQ。"
+    },
+    {
+      "id": "white-wolf-king",
+      "name": "白狼王",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "白天可以自曝，自曝時選擇攻擊一名玩家；非自曝出局不能發動技能。",
+      "trackedFields": [
+        { "key": "selfExposed", "label": "已自曝", "type": "boolean", "initial": false },
+        { "key": "shotUsed", "label": "自曝帶人已用", "type": "boolean", "initial": false },
+        { "key": "shotTarget", "label": "自曝帶走目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 30, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "首夜僅舉手示意身份；技能為白天自曝。"
+    },
+    {
+      "id": "raven-claw",
+      "name": "狼鴉之爪",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "存活狼人少於 3 人時解除封印，可得知其他狼人身份；可在狼人行動結束後單獨攻擊一名玩家，無視一切保護效果，僅能發動一次。",
+      "trackedFields": [
+        { "key": "unlocked", "label": "已解除封印", "type": "boolean", "initial": false },
+        { "key": "knownWolves", "label": "已知狼人座位", "type": "seatList", "initial": [] },
+        { "key": "strikeUsed", "label": "震擊已用", "type": "boolean", "initial": false },
+        { "key": "strikeTarget", "label": "震擊目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "teammateNumber",
+      "peekCount": 0,
+      "peekNote": "解除封印後得知所有其他狼人的身份；不是主動查驗。",
+      "firstNightOnly": false,
+      "nightAction": "conditional",
+      "wolfDiscussion": "conditional",
+      "wakeOrder": { "firstNight": 26, "laterNight": 4, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "首夜僅確認身份；存活狼人少於 3 人時解除封印並加入狼隊，但震擊仍在狼人行動結束後單獨進行。"
+    },
+    {
+      "id": "awakened-hidden-wolf",
+      "name": "覺醒隱狼",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "不進入狼窩，不能自曝，不知其他狼人身份，其他狼人也不知其身份；其餘狼人出局後可在夜間攻擊。可模仿一名玩家，立刻獲得其身份，並在當夜結束後獲得其技能（狼人：額外攻擊；魔鏡少女：每晚查驗具體身份；女巫：一瓶毒藥；守衛：每晚守護一人，不能連續兩晚同一人）。",
+      "trackedFields": [
+        { "key": "mimicTarget", "label": "模仿目標", "type": "seat", "initial": null },
+        { "key": "mimickedRole", "label": "模仿到的角色", "type": "roleId", "initial": null },
+        { "key": "mimicUsed", "label": "模仿已用", "type": "boolean", "initial": false },
+        { "key": "extraAttackUsed", "label": "額外攻擊已用", "type": "boolean", "initial": false },
+        { "key": "poisonUsed", "label": "模仿毒藥已用", "type": "boolean", "initial": false },
+        { "key": "guardLastTarget", "label": "上次守護目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "exactRole",
+      "peekCount": 1,
+      "peekNote": "模仿時得知目標的具體身份；不是查驗技能。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "separate",
+      "wakeOrder": { "firstNight": 19, "laterNight": 20, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "模仿技能僅一次；模仿後獲得目標技能。"
+    },
+    {
+      "id": "wolf-king",
+      "name": "狼王",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "出局後可以開槍帶走一名玩家；殉情、被攝夢和被投毒不能發動技能。",
+      "trackedFields": [
+        { "key": "shotUsed", "label": "開槍已用", "type": "boolean", "initial": false },
+        { "key": "shotTarget", "label": "帶走目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 29, "laterNight": 27, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "夜間睜眼僅確認身份或可開槍狀態。"
+    },
+    {
+      "id": "evil-spirit-knight",
+      "name": "惡靈騎士",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "夜間與狼人一同行動，無法自曝，不能在夜間出局；免疫女巫投毒與夜間獵人槍擊。擁有一次性反傷：當神職能力指定其為唯一目標時，使用技能的神職當夜出局。",
+      "trackedFields": [
+        { "key": "reflectUsed", "label": "反傷已用", "type": "boolean", "initial": false },
+        { "key": "reflectTarget", "label": "反傷觸發者", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 31, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 16,
+      "notes": "首夜僅舉手示意身份；反傷僅一次。"
+    },
+    {
+      "id": "nightmare-shadow",
+      "name": "惡夢之影",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "每晚恐懼一名玩家，使其當夜無法行動；若對方為狼人，整個狼人陣營也無法攻擊。不能連續兩晚恐懼同一人；首夜恐懼時與其他狼人不互知身份。",
+      "trackedFields": [
+        { "key": "fearTarget", "label": "本夜恐懼目標", "type": "seat", "initial": null },
+        { "key": "lastFearTarget", "label": "上一夜恐懼目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "unclear",
+      "wakeOrder": { "firstNight": 5, "laterNight": 6, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "首夜恐懼時與其他狼人不互知身份；是否進入狼窩討論未明說。"
+    },
+    {
+      "id": "silent-night-mentor",
+      "name": "寂夜導師",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "不進入狼窩，不能自曝；其他狼人知曉其身份，其餘狼人出局後可在夜間發動選中出局的技能。從第二晚開始，可使用時波轉換器增幅或削弱目標，各一次。增幅：預言家額外驗人、女巫額外投毒、守衛額外守護、狼人單獨額外襲擊；削弱：神職當夜無法發動技能，狼人則整個狼隊當夜無法攻擊。若好人同時成為白晝學者與寂夜導師的目標，雙方技能失效且該玩家出局；若目標為狼人（即使不同狼人），雙方技能失效且寂夜導師出局。",
+      "trackedFields": [
+        { "key": "amplifyUsed", "label": "增幅已用", "type": "boolean", "initial": false },
+        { "key": "weakenUsed", "label": "削弱已用", "type": "boolean", "initial": false },
+        { "key": "amplifyTarget", "label": "本夜增幅目標", "type": "seat", "initial": null },
+        { "key": "weakenTarget", "label": "本夜削弱目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "secondNightOnward",
+      "wolfDiscussion": "separate",
+      "wakeOrder": { "firstNight": 4, "laterNight": 3, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "從第二晚開始；首夜仍按喚醒順序睜眼（規則矛盾，見 notes）。"
+    },
+    {
+      "id": "gargoyle",
+      "name": "石像鬼",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "不能自曝，被預言家查驗始終為狼人。每晚上半夜單獨查驗一名玩家的具體身份，不能驗自己或重複驗人；下半夜若其他狼人存活則不進狼窩，若其他狼人全部出局則獲得攻擊技能。",
+      "trackedFields": [
+        { "key": "checkedSeats", "label": "已查驗座位", "type": "seatList", "initial": [] },
+        { "key": "attackUnlocked", "label": "已獲得攻擊技能", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "exactRole",
+      "peekCount": 1,
+      "peekNote": "查驗一名玩家的具體身份；不能查驗自己或重複查驗同一人。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "separate",
+      "wakeOrder": { "firstNight": 36, "laterNight": 1, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "狼人討論階段不睜眼；查驗不能重複或驗自己。"
+    },
+    {
+      "id": "awakened-wolf-king",
+      "name": "覺醒狼王",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "可以自曝，可以選自己夜間出局。擁有兩次狼王爪技能，可在夜間將一次狼王爪傳給任意存活狼隊友；持有狼王爪者出局後可使用，選擇一名玩家一併出局。",
+      "trackedFields": [
+        { "key": "selfNightOut", "label": "選擇夜間出局", "type": "boolean", "initial": false },
+        { "key": "clawCharges", "label": "狼王爪剩餘次數", "type": "counter", "initial": 2, "min": 0, "max": 2 },
+        { "key": "clawHolders", "label": "持有狼王爪的玩家", "type": "seatList", "initial": [] },
+        { "key": "passTarget", "label": "本夜傳遞目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 15, "laterNight": 16, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "「可以選自己夜間出局」含義待確認；狼王爪共兩次。"
+    },
+    {
+      "id": "scent-phantom",
+      "name": "尋香魅影",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "不可以自曝；開局不入狼隊，其他狼人全部出局後獲得攻擊技能。首夜隨機知曉一名狼隊友的位置；每晚可選擇任意兩名玩家綁定，被綁定者互不知情，其中一方出局時另一方跟隨出局，僅可觸發一次。",
+      "trackedFields": [
+        { "key": "knownTeammate", "label": "首夜知曉的狼隊友", "type": "seat", "initial": null },
+        { "key": "boundSeats", "label": "綁定座位", "type": "seatList", "initial": [] },
+        { "key": "bindResolved", "label": "綁定已觸發", "type": "boolean", "initial": false },
+        { "key": "attackUnlocked", "label": "已獲得攻擊技能", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "teammateNumber",
+      "peekCount": 1,
+      "peekNote": "首夜得知一名狼隊友的座位號碼；不是每晚查驗。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "separate",
+      "wakeOrder": { "firstNight": 27, "laterNight": 5, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "首夜得知一名狼隊友號碼；綁定僅觸發一次。"
+    },
+    {
+      "id": "time-eroding-wolf-queen",
+      "name": "蝕時狼妃",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "每晚可選擇場上一名玩家封鎖到時間夾縫中；當晚好人陣營對被封鎖者釋放的查驗、投毒和守護技能，均視為對自身釋放。蝕時狼妃在技能生效的下一夜永久失去技能。",
+      "trackedFields": [
+        { "key": "blockedSeat", "label": "本夜封鎖目標", "type": "seat", "initial": null },
+        { "key": "skillLost", "label": "已永久失去技能", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 7, "laterNight": 8, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "封鎖效果只轉移好人陣營的查驗、投毒、守護；技能生效後下一夜永久失去技能。"
+    },
+    {
+      "id": "night-aristocrat",
+      "name": "夜之貴族",
+      "camp": "狼人陣營",
+      "campKey": "wolf",
+      "ability": "可以自曝；夜間參與狼人討論與行動。從第二晚開始，可選擇其他玩家成為夜僕，夜僕會在下一夜天亮時出局；夜僕存在時不能選擇新夜僕。成為夜僕不影響原有技能、狀態和陣營，只有夜之貴族知道誰是夜僕。",
+      "trackedFields": [
+        { "key": "servantSeat", "label": "夜僕座位", "type": "seat", "initial": null },
+        { "key": "servantPending", "label": "夜僕死亡待結算", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "secondNightOnward",
+      "wolfDiscussion": "joins",
+      "wakeOrder": { "firstNight": 17, "laterNight": 18, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 17,
+      "notes": "從第二晚開始；夜僕死亡延後到下一夜天亮。"
+    },
+    {
+      "id": "seer",
+      "name": "預言家",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每晚可以查驗一名玩家是好人還是狼人。",
+      "trackedFields": [
+        { "key": "checkedSeats", "label": "已查驗座位", "type": "seatList", "initial": [] },
+        { "key": "lastCheckTarget", "label": "最近查驗目標", "type": "seat", "initial": null },
+        { "key": "lastCheckCamp", "label": "最近查驗陣營", "type": "enum", "values": ["good", "wolf"], "initial": null }
+      ],
+      "peekKind": "goodOrWolf",
+      "peekCount": 1,
+      "peekNote": "查驗一名玩家是好人或狼人陣營。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 23, "laterNight": 24, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": null
+    },
+    {
+      "id": "witch",
+      "name": "女巫",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "擁有解藥與毒藥：解藥可救活當晚被狼人襲擊的玩家，毒藥可令一名玩家出局；每天晚上最多使用一瓶藥。",
+      "trackedFields": [
+        { "key": "antidoteRemaining", "label": "解藥剩餘", "type": "counter", "initial": 1, "min": 0, "max": 1 },
+        { "key": "poisonRemaining", "label": "毒藥剩餘", "type": "counter", "initial": 1, "min": 0, "max": 1 },
+        { "key": "potionUsedThisNight", "label": "本夜已用藥", "type": "enum", "values": ["antidote", "poison"], "initial": null },
+        { "key": "savedSeat", "label": "本夜解藥目標", "type": "seat", "initial": null },
+        { "key": "poisonedSeat", "label": "本夜毒藥目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 18, "laterNight": 19, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": "每晚最多一瓶藥；解藥與毒藥各一瓶。"
+    },
+    {
+      "id": "guard",
+      "name": "守衛",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每晚可以守護一名玩家當晚不被狼人攻擊，不能連續兩晚守護同一名玩家。",
+      "trackedFields": [
+        { "key": "guardedSeat", "label": "本夜守護目標", "type": "seat", "initial": null },
+        { "key": "lastGuardedSeat", "label": "上一夜守護目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 10, "laterNight": 11, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": "不能連續兩晚守護同一人；夜間可守自己或不守。"
+    },
+    {
+      "id": "hunter",
+      "name": "獵人",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "當獵人被狼人攻擊或被投票放逐時，可以亮出身份牌並開槍帶走一名玩家。",
+      "trackedFields": [
+        { "key": "canShoot", "label": "當前可開槍", "type": "boolean", "initial": true },
+        { "key": "shotUsed", "label": "開槍已用", "type": "boolean", "initial": false },
+        { "key": "shotTarget", "label": "帶走目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 28, "laterNight": 26, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "夜間睜眼確認是否能開槍；被投毒能否開槍未明說。"
+    },
+    {
+      "id": "idiot",
+      "name": "白痴",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "被投票出局時，可以翻開身份牌免疫此次放逐；之後可正常發言但不能投票，狼人需再襲擊他一次才能使其出局。非投票原因出局則無法發動技能。",
+      "trackedFields": [
+        { "key": "immunityUsed", "label": "放逐免疫已用", "type": "boolean", "initial": false },
+        { "key": "voteLost", "label": "已失去投票權", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 33, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 19,
+      "notes": "首夜僅確認身份；非投票出局不能免疫。"
+    },
+    {
+      "id": "knight",
+      "name": "騎士",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "可在白天放逐投票前任意時刻翻出身份牌並指定一名玩家決鬥，由法官宣布該玩家是否狼人；若是狼人，該玩家立即出局，白天結束並馬上進入晚上；若不是，騎士出局且無遺言，當天發言和投票繼續。僅能發動一次。",
+      "trackedFields": [
+        { "key": "duelUsed", "label": "決鬥已用", "type": "boolean", "initial": false },
+        { "key": "duelTarget", "label": "決鬥目標", "type": "seat", "initial": null },
+        { "key": "duelResult", "label": "決鬥結果", "type": "enum", "values": ["wolf", "good"], "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 34, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": "首夜僅確認身份；決鬥僅一次。"
+    },
+    {
+      "id": "gravekeeper",
+      "name": "守墓人",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "夜晚可以得知上一個白天被放逐的玩家是好人或狼人。",
+      "trackedFields": [
+        { "key": "lastExileSeat", "label": "上次放逐座位", "type": "seat", "initial": null },
+        { "key": "lastExileCamp", "label": "上次放逐陣營", "type": "enum", "values": ["good", "wolf"], "initial": null }
+      ],
+      "peekKind": "lastExileCamp",
+      "peekCount": 1,
+      "peekNote": "得知上一個白天被放逐的玩家是好人或狼人。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 8, "laterNight": 9, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": "首夜僅示意位置；第二夜起得知上一個白天放逐陣營。"
+    },
+    {
+      "id": "magician",
+      "name": "魔術師",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每晚可以交換場上任兩名玩家的號碼，當晚這兩名玩家的技能結算結果將被交換，天亮時恢復原狀。一局中每個號碼只能被交換一次。",
+      "trackedFields": [
+        { "key": "swapA", "label": "交換號碼 A", "type": "seat", "initial": null },
+        { "key": "swapB", "label": "交換號碼 B", "type": "seat", "initial": null },
+        { "key": "swappedThisNight", "label": "本夜已交換", "type": "boolean", "initial": false },
+        { "key": "swappedNumbers", "label": "已交換過的號碼", "type": "seatList", "initial": [] }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 11, "laterNight": 12, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": "每個號碼只能被交換一次；交換只影響當夜結算。"
+    },
+    {
+      "id": "dream-weaver",
+      "name": "攝夢人",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每晚必須選擇一名玩家成為夢遊者。狼人攻擊夢遊者視為無效；女巫對夢遊者使用毒藥或解藥則藥效被浪費。連續兩晚成為夢遊者的玩家會出局；若攝夢人在夜間出局，則夢遊者一同出局。",
+      "trackedFields": [
+        { "key": "dreamTarget", "label": "本夜夢遊者", "type": "seat", "initial": null },
+        { "key": "lastDreamTarget", "label": "上一夜夢遊者", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 12, "laterNight": 13, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 18,
+      "notes": "每晚必須攝夢，不能攝自己；連續兩晚同一人會出局。"
+    },
+    {
+      "id": "order-prince",
+      "name": "定序王子",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "白天第一次放逐投票結束後，可以翻牌發動技能，逆轉時空回到本次投票前並重新投票；重新投票前可以進行一次額外發言。僅能發動一次。",
+      "trackedFields": [
+        { "key": "skillUsed", "label": "逆轉時空已用", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 35, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 19,
+      "notes": "首夜僅確認身份；技能僅一次。"
+    },
+    {
+      "id": "demon-hunter",
+      "name": "獵魔人",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "從第二個夜晚開始，每晚可以選擇一名玩家狩獵；若被狩獵者是狼人，該狼人出局；若為好人，獵魔人出局。女巫的投毒對獵魔人無效。",
+      "trackedFields": [
+        { "key": "huntTarget", "label": "本夜狩獵目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "secondNightOnward",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 22, "laterNight": 23, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 19,
+      "notes": "從第二個夜晚開始；女巫投毒無效。"
+    },
+    {
+      "id": "miracle-merchant",
+      "name": "奇蹟商人",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "夜晚可選擇其他玩家成為幸運兒，使其獲得三個一次性技能中的一個：預言家查驗、女巫投毒或守衛守護，每局僅限一次。若幸運兒是狼人，則該玩家不會獲得技能，且次日奇蹟商人出局。",
+      "trackedFields": [
+        { "key": "grantUsed", "label": "本局已賦予技能", "type": "boolean", "initial": false },
+        { "key": "luckySeat", "label": "幸運兒座位", "type": "seat", "initial": null },
+        { "key": "grantedSkill", "label": "賦予技能", "type": "enum", "values": ["seer", "witch", "guard"], "initial": null },
+        { "key": "skillUsed", "label": "幸運兒技能已用", "type": "boolean", "initial": false },
+        { "key": "merchantDied", "label": "因幸運兒是狼人而出局", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 9, "laterNight": 10, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 19,
+      "notes": "每局僅能賦予一次；若幸運兒是狼人，次日奇蹟商人出局。"
+    },
+    {
+      "id": "alchemist-witch",
+      "name": "煉金魔女",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "擁有未明之霧與法老之蛇，每局各可使用一次。夜間可使用未明之霧選定場上三名不同玩家，當夜狼人陣營必須從這三人中選擇攻擊目標。法老之蛇能使煉金魔女在夜晚獲悉當夜狼人襲擊目標，並在次日公佈出局信息前決定是否使用法老之蛇救活該玩家。當煉金魔女存活且未使用法老之蛇時，白天流程改為先放逐發言，後公佈出局資訊。",
+      "trackedFields": [
+        { "key": "fogUsed", "label": "未明之霧已用", "type": "boolean", "initial": false },
+        { "key": "fogTargets", "label": "未明之霧選定座位", "type": "seatList", "initial": [] },
+        { "key": "snakeUsed", "label": "法老之蛇已用", "type": "boolean", "initial": false },
+        { "key": "learnedKillSeat", "label": "獲悉的狼人襲擊目標", "type": "seat", "initial": null },
+        { "key": "snakeSavedSeat", "label": "法老之蛇救活目標", "type": "seat", "initial": null },
+        { "key": "snakeDecisionPending", "label": "法老之蛇待決定", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 6, "laterNight": 7, "firstNightSecondAction": 21, "laterNightSecondAction": 22 },
+      "sourcePage": 19,
+      "notes": "未明之霧與法老之蛇各一次；夜間第二次行動是否僅在使用未明之霧後才得知狼刀，規則有矛盾。"
+    },
+    {
+      "id": "silence-elder",
+      "name": "禁言長老",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每天晚上可以指定一名玩家，第二天該玩家不能說話，只能用動作表達想法。",
+      "trackedFields": [
+        { "key": "silencedSeat", "label": "本夜禁言目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 37, "laterNight": 28, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 19,
+      "notes": "可以不禁言。"
+    },
+    {
+      "id": "bear-tamer",
+      "name": "馴熊師",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "天亮後，若馴熊師存活且兩邊存活的玩家之中存在狼人，法官向全場宣布「熊咆哮了」；若馴熊師出局或相鄰存活玩家中沒有狼人，則宣布「熊沒有咆哮」。",
+      "trackedFields": [
+        { "key": "roar", "label": "本日熊咆哮", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 39, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 19,
+      "notes": "首夜僅確認身份；咆哮判定按夜晚均未出局的情況。"
+    },
+    {
+      "id": "mirror-maiden",
+      "name": "魔鏡少女",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每晚可以查驗一名玩家的具體身份。只要覺醒隱狼曾使用過模仿技能（無論是否今夜），魔鏡少女都會查驗出覺醒隱狼模仿後的身份；若未曾模仿，則查驗為覺醒隱狼。",
+      "trackedFields": [
+        { "key": "checkedSeats", "label": "已查驗座位", "type": "seatList", "initial": [] },
+        { "key": "lastCheckTarget", "label": "最近查驗目標", "type": "seat", "initial": null },
+        { "key": "lastCheckRole", "label": "最近查驗身份", "type": "roleId", "initial": null }
+      ],
+      "peekKind": "exactRole",
+      "peekCount": 1,
+      "peekNote": "查驗一名玩家的具體身份；覺醒隱狼曾模仿時顯示模仿後身份，否則顯示覺醒隱狼。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 20, "laterNight": 21, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "查驗結果受覺醒隱狼模仿影響。"
+    },
+    {
+      "id": "day-scholar",
+      "name": "白晝學者",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "從第二晚開始，可使用時波轉換器增幅或削弱目標，各一次。增幅：預言家額外驗人、女巫額外投毒、守衛額外守護、狼人單獨額外襲擊；削弱：神職當夜無法發動技能，狼人則整個狼隊當夜無法攻擊。若好人同時成為白晝學者與寂夜導師的目標，雙方技能失效且該玩家出局；若目標為狼人（即使不同狼人），雙方技能失效且寂夜導師出局。",
+      "trackedFields": [
+        { "key": "amplifyUsed", "label": "增幅已用", "type": "boolean", "initial": false },
+        { "key": "weakenUsed", "label": "削弱已用", "type": "boolean", "initial": false },
+        { "key": "amplifyTarget", "label": "本夜增幅目標", "type": "seat", "initial": null },
+        { "key": "weakenTarget", "label": "本夜削弱目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "secondNightOnward",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 3, "laterNight": 2, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "從第二晚開始；首夜仍按喚醒順序睜眼（規則矛盾，見 notes）。"
+    },
+    {
+      "id": "awakened-seer",
+      "name": "覺醒預言家",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "每天晚上可以選擇任意兩名玩家窺視其身份，判斷其中是否有狼人。",
+      "trackedFields": [
+        { "key": "checkedPairs", "label": "已查驗組合", "type": "seatPairList", "initial": [] },
+        { "key": "lastPair", "label": "最近查驗組合", "type": "seatList", "initial": [] },
+        { "key": "lastPairResult", "label": "最近查驗結果", "type": "enum", "values": ["good", "containsWolf"], "initial": null }
+      ],
+      "peekKind": "goodOrWolf",
+      "peekCount": 2,
+      "peekNote": "查驗任意兩名玩家：兩人皆好人則回報好人，至少一人為狼人則回報狼人。",
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 24, "laterNight": 25, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "一次查驗兩名玩家；兩人皆好人回報好人，至少一人狼人回報狼人。"
+    },
+    {
+      "id": "awakened-idiot",
+      "name": "覺醒白痴",
+      "camp": "好人陣營/神職",
+      "campKey": "god",
+      "ability": "擁有秘密之身。白天被放逐時會翻牌並免除本次放逐出局，失去秘密之身。夜間可以用秘密之身保護一名玩家，嘗試為其抵消一次當夜受到的傷害；若其未受到傷害或已被救活，則秘密之身會嘗試為自身抵消一次傷害。只要成功抵消一次傷害，即失去秘密之身。",
+      "trackedFields": [
+        { "key": "secretBodyActive", "label": "秘密之身存在", "type": "boolean", "initial": true },
+        { "key": "protectedSeat", "label": "本夜保護目標", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "everyNight",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 13, "laterNight": 14, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "秘密之身同時提供放逐免疫與夜間護盾；成功抵消傷害或白天免疫後失去。"
+    },
+    {
+      "id": "villager",
+      "name": "平民",
+      "camp": "好人陣營/平民",
+      "campKey": "villager",
+      "ability": "沒有任何能力，一覺睡到天亮。",
+      "trackedFields": [],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": false,
+      "nightAction": "none",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": null, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "夜間全程閉眼。"
+    },
+    {
+      "id": "rogue",
+      "name": "老流氓",
+      "camp": "好人陣營/平民",
+      "campKey": "villager",
+      "ability": "不能被魅惑。在被投毒、槍擊或襲擊後分別進入中毒和負傷狀態，當晚不會出局，在第二天發言結束後出局。",
+      "trackedFields": [
+        { "key": "poisoned", "label": "中毒狀態", "type": "boolean", "initial": false },
+        { "key": "wounded", "label": "負傷狀態", "type": "boolean", "initial": false },
+        { "key": "deathPending", "label": "待次日發言後出局", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 38, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 20,
+      "notes": "首夜僅確認身份；被魅惑免疫；中毒/負傷當晚不出局，次日發言後出局。"
+    },
+    {
+      "id": "bomber",
+      "name": "炸彈人",
+      "camp": "特殊陣營",
+      "campKey": "special",
+      "ability": "白天被投票放逐後，所有給他上票的玩家全部出局；若場上所有玩家都給他上票，則炸彈人單獨獲得勝利。",
+      "trackedFields": [
+        { "key": "bombTriggered", "label": "炸彈已引爆", "type": "boolean", "initial": false },
+        { "key": "votedSeats", "label": "給他上票的玩家", "type": "seatList", "initial": [] },
+        { "key": "soloWin", "label": "全場上票單獨勝利", "type": "boolean", "initial": false }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 40, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 21,
+      "notes": "首夜僅確認身份；被放逐後引爆，全場上票則單獨勝利。"
+    },
+    {
+      "id": "wild-child",
+      "name": "野孩子",
+      "camp": "特殊陣營",
+      "campKey": "special",
+      "ability": "第一夜指定一名玩家為榜樣，無論榜樣是什麼陣營，野孩子此時均為好人。當榜樣被投票出局時，野孩子加入狼人陣營並可在夜晚襲擊人；若野孩子先於榜樣出局，則始終為好人陣營。",
+      "trackedFields": [
+        { "key": "modelSeat", "label": "榜樣座位", "type": "seat", "initial": null },
+        { "key": "joinedWolves", "label": "已加入狼人陣營", "type": "boolean", "initial": false },
+        { "key": "currentCamp", "label": "當前陣營", "type": "enum", "values": ["good", "wolf"], "initial": "good" }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 1, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 21,
+      "notes": "榜樣被放逐後加入狼人陣營；若野孩子先出局則始終好人。"
+    },
+    {
+      "id": "secret-admirer",
+      "name": "暗戀者",
+      "camp": "特殊陣營",
+      "campKey": "special",
+      "ability": "在第一夜選擇一名玩家作為暗戀對象，獲勝條件與暗戀對象一致；暗戀者不知道暗戀對象的身份，暗戀對象也不知道自己被暗戀。",
+      "trackedFields": [
+        { "key": "crushSeat", "label": "暗戀對象", "type": "seat", "initial": null }
+      ],
+      "peekKind": "none",
+      "peekCount": 0,
+      "peekNote": null,
+      "firstNightOnly": true,
+      "nightAction": "firstNightOnly",
+      "wolfDiscussion": "none",
+      "wakeOrder": { "firstNight": 2, "laterNight": null, "firstNightSecondAction": null, "laterNightSecondAction": null },
+      "sourcePage": 21,
+      "notes": "獲勝條件與暗戀對象一致；雙方互不知情。"
+    }
+  ],
+  "presets": [
+    {
+      "id": "standard-333",
+      "section": "2.1",
+      "name": "標準 333",
+      "playerCount": 9,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 3 }
+      ],
+      "sourcePage": 3
+    },
+    {
+      "id": "standard-334",
+      "section": "2.2",
+      "name": "標準 334",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 3
+    },
+    {
+      "id": "standard-444",
+      "section": "2.3",
+      "name": "標準 444",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 4 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "idiot", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 3
+    },
+    {
+      "id": "wolf-king-guard",
+      "section": "2.4",
+      "name": "狼王守衛",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "wolf-king", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 3
+    },
+    {
+      "id": "white-wolf-king-guard",
+      "section": "2.5",
+      "name": "白狼王守衛",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "white-wolf-king", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 4
+    },
+    {
+      "id": "doomsday-fanatic",
+      "section": "2.6",
+      "name": "末日狂徒",
+      "playerCount": 8,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "knight", "count": 1 },
+        { "roleId": "villager", "count": 2 }
+      ],
+      "sourcePage": 4
+    },
+    {
+      "id": "wolf-king-dream-weaver",
+      "section": "2.7",
+      "name": "狼王攝夢人",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "wolf-king", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "dream-weaver", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 4
+    },
+    {
+      "id": "wolf-king-magician",
+      "section": "2.8",
+      "name": "狼王魔術師",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "wolf-king", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "magician", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 4
+    },
+    {
+      "id": "evil-spirit-knight-guard",
+      "section": "2.9",
+      "name": "惡靈騎士守衛",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "evil-spirit-knight", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 5
+    },
+    {
+      "id": "wolf-beauty-knight",
+      "section": "2.10",
+      "name": "狼美人騎士",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "wolf-beauty", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "knight", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 5
+    },
+    {
+      "id": "white-wolf-king-knight",
+      "section": "2.11",
+      "name": "白狼王騎士",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "white-wolf-king", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "knight", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 5
+    },
+    {
+      "id": "gargoyle-gravekeeper",
+      "section": "2.12",
+      "name": "石像鬼守墓人",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "gargoyle", "count": 1 },
+        { "roleId": "gravekeeper", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 5
+    },
+    {
+      "id": "blood-moon-apostle-demon-hunter",
+      "section": "2.13",
+      "name": "血月使徒獵魔人",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "blood-moon-apostle", "count": 1 },
+        { "roleId": "demon-hunter", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "idiot", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 6
+    },
+    {
+      "id": "nightmare-shadow-dream-weaver",
+      "section": "2.14",
+      "name": "惡夢之影攝夢人",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "nightmare-shadow", "count": 1 },
+        { "roleId": "dream-weaver", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 6
+    },
+    {
+      "id": "secret-admirer",
+      "section": "2.15",
+      "name": "暗戀者",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 4 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 3 },
+        { "roleId": "secret-admirer", "count": 1 }
+      ],
+      "sourcePage": 6
+    },
+    {
+      "id": "miracle-merchant",
+      "section": "2.16",
+      "name": "奇蹟商人",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "wolf-king", "count": 1 },
+        { "roleId": "miracle-merchant", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 6
+    },
+    {
+      "id": "eternal-order-10",
+      "section": "2.17",
+      "name": "永序之輪",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "time-eroding-wolf-queen", "count": 1 },
+        { "roleId": "order-prince", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 7
+    },
+    {
+      "id": "eternal-order-12",
+      "section": "2.18",
+      "name": "永序之輪",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "time-eroding-wolf-queen", "count": 1 },
+        { "roleId": "order-prince", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 7
+    },
+    {
+      "id": "mist-raven-10",
+      "section": "2.19",
+      "name": "迷霧鴉影",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "raven-claw", "count": 1 },
+        { "roleId": "alchemist-witch", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "dream-weaver", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 7
+    },
+    {
+      "id": "mist-raven-12",
+      "section": "2.20",
+      "name": "迷霧鴉影",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "raven-claw", "count": 1 },
+        { "roleId": "alchemist-witch", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "idiot", "count": 1 },
+        { "roleId": "dream-weaver", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 7
+    },
+    {
+      "id": "twilight-of-the-gods",
+      "section": "2.21",
+      "name": "諸神黃昏",
+      "playerCount": 8,
+      "roles": [
+        { "roleId": "wolf-king", "count": 1 },
+        { "roleId": "white-wolf-king", "count": 1 },
+        { "roleId": "evil-spirit-knight", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "idiot", "count": 1 }
+      ],
+      "sourcePage": 8,
+      "notes": "無平民。"
+    },
+    {
+      "id": "survivor",
+      "section": "2.22",
+      "name": "生還者",
+      "playerCount": 7,
+      "roles": [
+        { "roleId": "wolf", "count": 1 },
+        { "roleId": "white-wolf-king", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 1 }
+      ],
+      "sourcePage": 8
+    },
+    {
+      "id": "time-wave-10",
+      "section": "2.23",
+      "name": "時波之亂",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "silent-night-mentor", "count": 1 },
+        { "roleId": "day-scholar", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 8
+    },
+    {
+      "id": "time-wave-12",
+      "section": "2.24",
+      "name": "時波之亂",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "silent-night-mentor", "count": 1 },
+        { "roleId": "day-scholar", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 8
+    },
+    {
+      "id": "awakening-night-10",
+      "section": "2.25",
+      "name": "覺醒之夜",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "night-aristocrat", "count": 1 },
+        { "roleId": "awakened-idiot", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 9
+    },
+    {
+      "id": "awakening-night-12",
+      "section": "2.26",
+      "name": "覺醒之夜",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "night-aristocrat", "count": 1 },
+        { "roleId": "awakened-idiot", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "demon-hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 9
+    },
+    {
+      "id": "scent-fate-10",
+      "section": "2.27",
+      "name": "尋香識命",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "scent-phantom", "count": 1 },
+        { "roleId": "awakened-seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 9
+    },
+    {
+      "id": "scent-fate-12",
+      "section": "2.28",
+      "name": "尋香識命",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "scent-phantom", "count": 1 },
+        { "roleId": "awakened-seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 9
+    },
+    {
+      "id": "awakened-wolf-king-10",
+      "section": "2.29",
+      "name": "覺醒狼王",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "awakened-wolf-king", "count": 1 },
+        { "roleId": "miracle-merchant", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 10
+    },
+    {
+      "id": "awakened-wolf-king-12",
+      "section": "2.30",
+      "name": "覺醒狼王",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "awakened-wolf-king", "count": 1 },
+        { "roleId": "miracle-merchant", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "dream-weaver", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 10
+    },
+    {
+      "id": "mirror-hidden-10",
+      "section": "2.31",
+      "name": "鏡隱迷蹤",
+      "playerCount": 10,
+      "roles": [
+        { "roleId": "wolf", "count": 2 },
+        { "roleId": "awakened-hidden-wolf", "count": 1 },
+        { "roleId": "mirror-maiden", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 10
+    },
+    {
+      "id": "mirror-hidden-12",
+      "section": "2.32",
+      "name": "鏡隱迷蹤",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "awakened-hidden-wolf", "count": 1 },
+        { "roleId": "mirror-maiden", "count": 1 },
+        { "roleId": "guard", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 10
+    },
+    {
+      "id": "silence-elder-knight",
+      "section": "2.33",
+      "name": "禁言長老騎士",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 4 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "silence-elder", "count": 1 },
+        { "roleId": "knight", "count": 1 },
+        { "roleId": "villager", "count": 4 }
+      ],
+      "sourcePage": 11
+    },
+    {
+      "id": "wolf-beauty-rogue",
+      "section": "2.34",
+      "name": "狼美人老流氓",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "wolf-beauty", "count": 1 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "idiot", "count": 1 },
+        { "roleId": "villager", "count": 3 },
+        { "roleId": "rogue", "count": 1 }
+      ],
+      "sourcePage": 11
+    },
+    {
+      "id": "bomber",
+      "section": "2.35",
+      "name": "炸彈人",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 4 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "villager", "count": 4 },
+        { "roleId": "bomber", "count": 1 }
+      ],
+      "sourcePage": 11
+    },
+    {
+      "id": "wild-child",
+      "section": "2.36",
+      "name": "野孩子",
+      "playerCount": 12,
+      "roles": [
+        { "roleId": "wolf", "count": 3 },
+        { "roleId": "seer", "count": 1 },
+        { "roleId": "witch", "count": 1 },
+        { "roleId": "hunter", "count": 1 },
+        { "roleId": "idiot", "count": 1 },
+        { "roleId": "villager", "count": 4 },
+        { "roleId": "wild-child", "count": 1 }
+      ],
+      "sourcePage": 11
+    }
+  ]
+}

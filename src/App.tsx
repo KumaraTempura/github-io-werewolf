@@ -1,17 +1,80 @@
+import { useEffect, useState } from 'react'
+import { presetBoardsById } from './data/catalog'
+import { isPlaying, type DraftState } from './game/state'
+import { useNotebook } from './game/useNotebook'
+import DashboardScreen from './ui/DashboardScreen'
+import DealScreen from './ui/DealScreen'
+import SetupScreen from './ui/SetupScreen'
+import { expandPreset } from './ui/roster'
+
+const DEFAULT_BOARD_ID = 'standard-333'
+
+function initialScreen(draft: DraftState): 'setup' | 'deal' {
+  return draft.mode === 'digital' && draft.revealedSeats.length > 0
+    ? 'deal'
+    : 'setup'
+}
+
 export default function App() {
+  const [state, dispatch] = useNotebook()
+  const [screen, setScreen] = useState<'setup' | 'deal'>(() =>
+    initialScreen(state.draft),
+  )
+
+  useEffect(() => {
+    if (isPlaying(state)) {
+      return
+    }
+    const { draft } = state
+    if (draft.boardId !== null || draft.playerCount !== 0) {
+      return
+    }
+    const preset = presetBoardsById.get(DEFAULT_BOARD_ID)
+    if (!preset) {
+      return
+    }
+    dispatch({ type: 'draft/setBoard', boardId: preset.id })
+    dispatch({ type: 'draft/setPlayerCount', playerCount: preset.playerCount })
+    dispatch({
+      type: 'draft/setAssignments',
+      assignments: expandPreset(preset),
+    })
+  }, [state, dispatch])
+
+  useEffect(() => {
+    if (!isPlaying(state) && state.draft.playerCount === 0) {
+      setScreen('setup')
+    }
+  }, [state])
+
+  if (isPlaying(state)) {
+    return (
+      <DashboardScreen
+        state={state}
+        dispatch={dispatch}
+        onClear={() => {
+          dispatch({ type: 'game/clear' })
+          setScreen('setup')
+        }}
+      />
+    )
+  }
+
+  if (screen === 'deal') {
+    return (
+      <DealScreen
+        draft={state.draft}
+        dispatch={dispatch}
+        onBack={() => setScreen('setup')}
+      />
+    )
+  }
+
   return (
-    <main className="shell">
-      <header className="shell__header">
-        <p className="shell__eyebrow">單機法官筆記</p>
-        <h1 className="shell__title">狼人殺法官筆記</h1>
-        <p className="shell__lead">
-          記錄每一場遊戲：發牌、查驗、出局與場上狀態。
-        </p>
-      </header>
-      <section className="shell__status" aria-label="系統狀態">
-        <span className="shell__dot" aria-hidden="true" />
-        應用程式已部署，功能陸續加入。
-      </section>
-    </main>
+    <SetupScreen
+      draft={state.draft}
+      dispatch={dispatch}
+      onDeal={() => setScreen('deal')}
+    />
   )
 }
