@@ -1,15 +1,14 @@
 import { expandPreset, presetBoardsById } from '../data/catalog'
 import type { DraftState, GameMode } from '../game/state'
 import type { NotebookDispatch } from '../game/useNotebook'
+import RoleOptions from './RoleOptions'
 import {
-  CAMP_GROUPS,
   CUSTOM_BOARD_ID,
   MAX_PLAYERS,
   MIN_PLAYERS,
   assignmentsComplete,
   presetSections,
   roleCounts,
-  rolesForCamp,
   shuffleAssignments,
 } from './roster'
 
@@ -224,15 +223,7 @@ export default function SetupScreen({
                       onChange={(event) => chooseRole(seat, event.target.value)}
                     >
                       <option value="">選擇角色</option>
-                      {CAMP_GROUPS.map(({ key, label }) => (
-                        <optgroup key={key} label={label}>
-                          {rolesForCamp(key).map((role) => (
-                            <option key={role.id} value={role.id}>
-                              {role.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
+                      <RoleOptions />
                     </select>
                   </label>
                 )

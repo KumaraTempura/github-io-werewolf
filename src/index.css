@@ -671,6 +671,7 @@ optgroup {
 }
 
 .game-seat {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -741,7 +742,9 @@ optgroup {
 }
 
 .game-seat__out-toggle {
-  margin-left: auto;
+  position: absolute;
+  top: 12px;
+  right: 12px;
   padding: 3px 9px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -768,8 +771,22 @@ optgroup {
 .game-seat__top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  padding-right: 60px;
+}
+
+.game-seat__open {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .game-seat__tags {
@@ -793,6 +810,11 @@ optgroup {
 .game-seat__tags .tag--used {
   border-color: #5a4725;
   color: var(--gold);
+}
+
+.game-seat__tags .tag--copied {
+  border-color: #3a4a6e;
+  color: #a9bdf0;
 }
 
 .game-seat__tags .tag--out {
@@ -907,6 +929,8 @@ optgroup {
   position: fixed;
   inset: 0;
   z-index: 140;
+  border: 0;
+  padding: 0;
   background: rgb(5 7 12 / 55%);
   backdrop-filter: blur(2px);
 }

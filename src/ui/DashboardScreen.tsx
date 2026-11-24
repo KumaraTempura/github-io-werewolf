@@ -1,33 +1,40 @@
 import { useEffect, useState } from 'react'
 import { getRole, presetBoardsById } from '../data/catalog'
 import type { ActiveGame, Setup } from '../game/state'
+import RoleOptions from './RoleOptions'
 
 interface DashboardScreenProps {
   game: ActiveGame
   onToggleOut: (seat: number) => void
+  onSetRole: (seat: number, roleId: string | null) => void
+  onSetCopiedTarget: (seat: number, target: number | null) => void
   onReset: () => void
 }
 
 export default function DashboardScreen({
   game,
   onToggleOut,
+  onSetRole,
+  onSetCopiedTarget,
   onReset,
 }: DashboardScreenProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
+  const [openSeatNumber, setOpenSeatNumber] = useState<number | null>(null)
   const alive = game.seats.filter((seat) => !seat.out).length
 
   useEffect(() => {
-    if (!confirmingReset) {
+    if (!confirmingReset && openSeatNumber === null) {
       return
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setConfirmingReset(false)
+        setOpenSeatNumber(null)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [confirmingReset])
+  }, [confirmingReset, openSeatNumber])
 
   return (
     <main className="shell game">
@@ -63,40 +70,71 @@ export default function DashboardScreen({
           {game.seats.map((seat, index) => {
             const seatNumber = index + 1
             const role = getRole(seat.roleId ?? '')
+            const copiedRole =
+              seat.copiedTarget === null
+                ? undefined
+                : getRole(
+                    game.seats[seat.copiedTarget - 1]?.roleId ?? '',
+                  )
             return (
               <article
                 className={`game-seat${seat.out ? ' is-out' : ''}`}
                 key={seatNumber}
                 aria-label={`座位 ${seatNumber}`}
               >
-                <span className="game-seat__top">
-                  <span className="game-seat__num">{seatNumber}</span>
-                  {role ? (
-                    <span
-                      className={`camp-dot camp-dot--${role.campKey}`}
-                      aria-hidden="true"
-                    />
+                <button
+                  type="button"
+                  className="game-seat__open"
+                  aria-label={`座位 ${seatNumber} 詳情`}
+                  onClick={() => setOpenSeatNumber(seatNumber)}
+                >
+                  <span className="game-seat__top">
+                    <span className="game-seat__num">{seatNumber}</span>
+                    {role ? (
+                      <span
+                        className={`camp-dot camp-dot--${role.campKey}`}
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="game-seat__role">{role?.name ?? '—'}</span>
+                  <span className="game-seat__camp">{role?.camp ?? '—'}</span>
+                  {seat.copiedTarget !== null ? (
+                    <span className="game-seat__tags">
+                      <i className="tag--copied">
+                        模仿 {seat.copiedTarget} 號 ·{' '}
+                        {copiedRole?.name ?? '未指定'}
+                      </i>
+                    </span>
                   ) : null}
-                  <button
-                    type="button"
-                    className={`game-seat__out-toggle${seat.out ? ' is-on' : ''}`}
-                    aria-label={`座位 ${seatNumber} 出局`}
-                    aria-pressed={seat.out}
-                    onClick={() => onToggleOut(seatNumber)}
-                  >
-                    出局
-                  </button>
-                </span>
-                <span className="game-seat__role">{role?.name ?? '—'}</span>
-                <span className="game-seat__camp">{role?.camp ?? '—'}</span>
-                {seat.out ? (
-                  <span className="game-seat__out-marker">已出局</span>
-                ) : null}
+                  {seat.out ? (
+                    <span className="game-seat__out-marker">已出局</span>
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  className={`game-seat__out-toggle${seat.out ? ' is-on' : ''}`}
+                  aria-label={`座位 ${seatNumber} 出局`}
+                  aria-pressed={seat.out}
+                  onClick={() => onToggleOut(seatNumber)}
+                >
+                  出局
+                </button>
               </article>
             )
           })}
         </div>
       </section>
+
+      {openSeatNumber !== null ? (
+        <SeatSheet
+          game={game}
+          seatNumber={openSeatNumber}
+          onSetRole={onSetRole}
+          onSetCopiedTarget={onSetCopiedTarget}
+          onClose={() => setOpenSeatNumber(null)}
+        />
+      ) : null}
 
       {confirmingReset ? (
         <ResetSheet
@@ -108,6 +146,104 @@ export default function DashboardScreen({
         />
       ) : null}
     </main>
+  )
+}
+
+interface SeatSheetProps {
+  game: ActiveGame
+  seatNumber: number
+  onSetRole: (seat: number, roleId: string | null) => void
+  onSetCopiedTarget: (seat: number, target: number | null) => void
+  onClose: () => void
+}
+
+function SeatSheet({
+  game,
+  seatNumber,
+  onSetRole,
+  onSetCopiedTarget,
+  onClose,
+}: SeatSheetProps) {
+  const seat = game.seats[seatNumber - 1]
+  return (
+    <>
+      <button
+        type="button"
+        className="sheet-backdrop"
+        aria-label="關閉座位詳情"
+        onClick={onClose}
+      />
+      <section
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`座位 ${seatNumber} 詳情`}
+      >
+        <div className="sheet-grip" aria-hidden="true" />
+        <header className="sheet-head">
+          <h2>座位 {seatNumber}</h2>
+          <button
+            type="button"
+            className="sheet-close"
+            aria-label="關閉"
+            autoFocus
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </header>
+        <div className="sheet-body">
+          <label
+            className="field-label"
+            htmlFor={`seat-role-${seatNumber}`}
+          >
+            角色
+          </label>
+          <select
+            id={`seat-role-${seatNumber}`}
+            className="select"
+            aria-label={`座位 ${seatNumber} 角色`}
+            value={seat.roleId ?? ''}
+            onChange={(event) =>
+              onSetRole(
+                seatNumber,
+                event.target.value === '' ? null : event.target.value,
+              )
+            }
+          >
+            <option value="">未指定</option>
+            <RoleOptions />
+          </select>
+
+          <label
+            className="field-label field-label--spaced"
+            htmlFor={`seat-copied-${seatNumber}`}
+          >
+            模仿對象
+          </label>
+          <select
+            id={`seat-copied-${seatNumber}`}
+            className="select"
+            aria-label={`座位 ${seatNumber} 模仿對象`}
+            value={seat.copiedTarget ?? ''}
+            onChange={(event) =>
+              onSetCopiedTarget(
+                seatNumber,
+                event.target.value === '' ? null : Number(event.target.value),
+              )
+            }
+          >
+            <option value="">未指定</option>
+            {game.seats.map((other, index) => (
+              <option key={index + 1} value={index + 1}>
+                {index + 1} 號 ·{' '}
+                {getRole(other.roleId ?? '')?.name ?? '未指定'}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+    </>
   )
 }
 

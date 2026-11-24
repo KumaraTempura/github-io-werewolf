@@ -35,6 +35,12 @@ export default function App() {
       <DashboardScreen
         game={state.game}
         onToggleOut={(seat) => dispatch({ type: 'game/toggleOut', seat })}
+        onSetRole={(seat, roleId) =>
+          dispatch({ type: 'game/setRole', seat, roleId })
+        }
+        onSetCopiedTarget={(seat, target) =>
+          dispatch({ type: 'game/setCopiedTarget', seat, target })
+        }
         onReset={() => {
           dispatch({ type: 'game/reset' })
           setScreen('setup')

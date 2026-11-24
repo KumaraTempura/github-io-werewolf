@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import { roles } from './data/catalog'
 import { NOTEBOOK_STORAGE_KEY } from './game/storage'
 
 const standardAssignments = [
@@ -229,6 +230,120 @@ describe('App', () => {
     expect(dialog.textContent?.replace(/\s+/g, ' ').trim()).toBe(
       `數位發牌 · 只給 ${seatNumber} 號看狼人陣營隱狼完成取消出示`,
     )
+  })
+
+  it('opens a seat sheet and returns to the table when it closes', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+
+    const sheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    expect(sheet).toBeInTheDocument()
+    expect(
+      within(sheet).queryByText('每晚可以查驗一名玩家是好人還是狼人。'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(sheet).queryByRole('button', { name: /顯示/ }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '標準 333' })).toBeInTheDocument()
+  })
+
+  it('edits a seat role with a camp-grouped picker including the hidden wolf', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    const picker = within(sheet).getByLabelText('座位 1 角色')
+
+    const options = within(picker)
+      .getAllByRole('option')
+      .map((option) => option.textContent?.trim())
+    expect(options).toHaveLength(roles.length + 1)
+    expect(options[0]).toBe('未指定')
+
+    const hiddenWolf = options.indexOf('隱狼')
+    expect(hiddenWolf).toBeGreaterThan(0)
+    expect(options[hiddenWolf - 1]).toBe('覺醒隱狼')
+
+    expect(
+      within(picker)
+        .getAllByRole('group')
+        .map((group) => group.getAttribute('label')),
+    ).toEqual([
+      '狼人陣營',
+      '好人陣營 · 神職',
+      '好人陣營 · 平民',
+      '特殊陣營',
+    ])
+
+    fireEvent.change(picker, { target: { value: 'hidden-wolf' } })
+
+    expect(screen.getByRole('dialog', { name: '座位 1 詳情' })).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('隱狼')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人陣營')).toBeInTheDocument()
+
+    fireEvent.change(picker, { target: { value: '' } })
+
+    expect(within(seatCard(1)).getAllByText('—')).toHaveLength(2)
+    expect(within(seatCard(1)).queryByText('隱狼')).not.toBeInTheDocument()
+  })
+
+  it('sets and clears a copied target and shows its current role', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    const picker = within(sheet).getByLabelText('座位 1 模仿對象')
+
+    expect(
+      within(picker)
+        .getAllByRole('option')
+        .map((option) => option.textContent?.trim()),
+    ).toEqual([
+      '未指定',
+      '1 號 · 狼人',
+      '2 號 · 狼人',
+      '3 號 · 狼人',
+      '4 號 · 預言家',
+      '5 號 · 女巫',
+      '6 號 · 獵人',
+      '7 號 · 平民',
+      '8 號 · 平民',
+      '9 號 · 平民',
+    ])
+    expect(within(seatCard(1)).queryByText(/模仿/)).not.toBeInTheDocument()
+
+    fireEvent.change(picker, { target: { value: '4' } })
+
+    expect(
+      within(seatCard(1)).getByText('模仿 4 號 · 預言家'),
+    ).toBeInTheDocument()
+
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
+    fireEvent.click(screen.getByRole('button', { name: '座位 4 詳情' }))
+    const targetSheet = screen.getByRole('dialog', { name: '座位 4 詳情' })
+    fireEvent.change(within(targetSheet).getByLabelText('座位 4 角色'), {
+      target: { value: 'villager' },
+    })
+    fireEvent.click(within(targetSheet).getByRole('button', { name: '關閉' }))
+
+    expect(
+      within(seatCard(1)).getByText('模仿 4 號 · 平民'),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    fireEvent.change(
+      within(screen.getByRole('dialog', { name: '座位 1 詳情' })).getByLabelText(
+        '座位 1 模仿對象',
+      ),
+      { target: { value: '' } },
+    )
+
+    expect(within(seatCard(1)).queryByText(/模仿/)).not.toBeInTheDocument()
   })
 
   it('marks a seat out and back in with a visible marker and alive count', () => {
