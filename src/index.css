@@ -1,0 +1,75 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  line-height: 1.5;
+  color: #e8e3d6;
+  background-color: #11151c;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2.5rem;
+  min-height: 100vh;
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.shell__eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.2em;
+  color: #d9a441;
+}
+
+.shell__title {
+  margin: 0;
+  font-size: clamp(2rem, 8vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+}
+
+.shell__lead {
+  margin: 1rem 0 0;
+  font-size: 1.0625rem;
+  color: #a9a294;
+}
+
+.shell__status {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #2a3038;
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  color: #b9b2a3;
+}
+
+.shell__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: #6cbf84;
+  box-shadow: 0 0 0 4px rgb(108 191 132 / 12%);
+}
