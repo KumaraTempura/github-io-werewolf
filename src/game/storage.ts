@@ -10,6 +10,7 @@ import {
   type NotebookState,
   type SeatRecord,
   type Setup,
+  type TableStateId,
   type TableStateMap,
   type UsedFlagState,
 } from './state'
@@ -178,6 +179,25 @@ function parseSeat(raw: unknown, playerCount: number): SeatRecord | null {
   }
 }
 
+function enforceExclusiveTableStates(seats: SeatRecord[]): SeatRecord[] {
+  const claimed = new Set<TableStateId>()
+  return seats.map((seat) => {
+    let tableStates: TableStateMap | null = null
+    for (const { id } of TABLE_STATES) {
+      if (!seat.tableStates[id]) {
+        continue
+      }
+      if (!claimed.has(id)) {
+        claimed.add(id)
+        continue
+      }
+      tableStates ??= { ...seat.tableStates }
+      tableStates[id] = false
+    }
+    return tableStates ? { ...seat, tableStates } : seat
+  })
+}
+
 function parseGame(raw: unknown): ActiveGame | null {
   if (!isRecord(raw)) {
     return null
@@ -197,7 +217,7 @@ function parseGame(raw: unknown): ActiveGame | null {
     }
     seats.push(seat)
   }
-  return { setup, seats }
+  return { setup, seats: enforceExclusiveTableStates(seats) }
 }
 
 function parseNotebook(raw: unknown): NotebookState | null {

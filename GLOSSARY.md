@@ -57,11 +57,11 @@ The seat a player copied, marked by the judge and shown on that player's seat. T
 _Avoid_: Copied role, mimic target
 
 **Used flag** (已用標記):
-A judge-set checkbox on a seat recording that an ability or potion has been used: 已用, 解藥已用, or 毒藥已用. It persists until reset and has no automatic effect.
+A judge-set checkbox on a seat recording that an ability or potion has been used: 已用, 解藥已用, or 毒藥已用. Flags are independent per seat: several seats may share the same used flag. Each persists until reset and has no automatic effect.
 _Avoid_: Spent, consumed
 
 **Table state** (場上狀態):
-A judge-set condition on a seat: 警長, 禁言, 魅惑, 綁定, 攝夢, or 保護. It has no automatic effect.
+A judge-set condition on a seat: 警長, 禁言, 魅惑, 綁定, 攝夢, or 保護. Each table state is held by at most one seat; checking it on another seat clears it from the previous seat. Different table states may coexist on different seats or the same seat, and a table state has no automatic effect.
 _Avoid_: Status, effect, buff
 
 **Reveal**:

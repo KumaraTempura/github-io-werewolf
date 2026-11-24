@@ -443,7 +443,7 @@ describe('App', () => {
     expect(within(seatCard(1)).queryByText(/模仿/)).not.toBeInTheDocument()
   })
 
-  it('shows nine independent used-flag and table-state checkboxes in the seat sheet', () => {
+  it('shows three used flags and six table states as checkboxes in the seat sheet', () => {
     startPhysicalGame()
 
     fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
@@ -485,7 +485,7 @@ describe('App', () => {
     }
   })
 
-  it('keeps used flags and table states independent of out and other seats', () => {
+  it('keeps checkboxes independent of out', () => {
     const { container } = startPhysicalGame()
 
     fireEvent.click(screen.getByRole('button', { name: '座位 1 出局' }))
@@ -523,6 +523,153 @@ describe('App', () => {
         { name: '座位 1 已用' },
       ),
     ).toBeChecked()
+  })
+
+  it('moves a table state to the latest checked seat', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const firstSheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    fireEvent.click(
+      within(firstSheet).getByRole('checkbox', { name: '座位 1 警長' }),
+    )
+    fireEvent.click(
+      within(firstSheet).getByRole('checkbox', { name: '座位 1 保護' }),
+    )
+    fireEvent.click(within(firstSheet).getByRole('button', { name: '關閉' }))
+
+    expect(within(seatCard(1)).getByText('警長')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 2 詳情' }))
+    const secondSheet = screen.getByRole('dialog', { name: '座位 2 詳情' })
+    fireEvent.click(
+      within(secondSheet).getByRole('checkbox', { name: '座位 2 禁言' }),
+    )
+    fireEvent.click(
+      within(secondSheet).getByRole('checkbox', { name: '座位 2 警長' }),
+    )
+
+    expect(within(seatCard(1)).queryByText('警長')).not.toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('保護')).toBeInTheDocument()
+    expect(within(seatCard(2)).getByText('警長')).toBeInTheDocument()
+    expect(within(seatCard(2)).getByText('禁言')).toBeInTheDocument()
+
+    fireEvent.click(within(secondSheet).getByRole('button', { name: '關閉' }))
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const reopenedFirst = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 警長' }),
+    ).not.toBeChecked()
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 保護' }),
+    ).toBeChecked()
+  })
+
+  it('allows different table states and shared used flags on several seats', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const firstSheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    fireEvent.click(
+      within(firstSheet).getByRole('checkbox', { name: '座位 1 已用' }),
+    )
+    fireEvent.click(
+      within(firstSheet).getByRole('checkbox', { name: '座位 1 解藥已用' }),
+    )
+    fireEvent.click(
+      within(firstSheet).getByRole('checkbox', { name: '座位 1 警長' }),
+    )
+    fireEvent.click(
+      within(firstSheet).getByRole('checkbox', { name: '座位 1 保護' }),
+    )
+    fireEvent.click(within(firstSheet).getByRole('button', { name: '關閉' }))
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 2 詳情' }))
+    const secondSheet = screen.getByRole('dialog', { name: '座位 2 詳情' })
+    fireEvent.click(
+      within(secondSheet).getByRole('checkbox', { name: '座位 2 已用' }),
+    )
+    fireEvent.click(
+      within(secondSheet).getByRole('checkbox', { name: '座位 2 解藥已用' }),
+    )
+    fireEvent.click(
+      within(secondSheet).getByRole('checkbox', { name: '座位 2 禁言' }),
+    )
+
+    expect(within(seatCard(1)).getByText('已用')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('解藥已用')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('警長')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('保護')).toBeInTheDocument()
+    expect(within(seatCard(2)).getByText('已用')).toBeInTheDocument()
+    expect(within(seatCard(2)).getByText('解藥已用')).toBeInTheDocument()
+    expect(within(seatCard(2)).getByText('禁言')).toBeInTheDocument()
+
+    fireEvent.click(within(secondSheet).getByRole('button', { name: '關閉' }))
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const reopenedFirst = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 已用' }),
+    ).toBeChecked()
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 解藥已用' }),
+    ).toBeChecked()
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 警長' }),
+    ).toBeChecked()
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 保護' }),
+    ).toBeChecked()
+    expect(
+      within(reopenedFirst).getByRole('checkbox', { name: '座位 1 禁言' }),
+    ).not.toBeChecked()
+  })
+
+  it('keeps only the first seat when a saved table state is checked on several', () => {
+    const seats = standardAssignments.map((roleId, index) => ({
+      roleId,
+      out: false,
+      copiedTarget: null,
+      usedFlags: {
+        used: false,
+        antidoteUsed: false,
+        poisonUsed: false,
+      },
+      tableStates: {
+        badge: index === 0 || index === 3,
+        silenced: false,
+        charmed: false,
+        bound: false,
+        dreamed: false,
+        protected: false,
+      },
+    }))
+    window.localStorage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        draft: {
+          boardId: 'standard-333',
+          playerCount: 9,
+          mode: 'physical',
+          assignments: standardAssignments,
+          revealedSeats: [],
+        },
+        game: {
+          setup: {
+            boardId: 'standard-333',
+            playerCount: 9,
+            mode: 'physical',
+            assignments: standardAssignments,
+          },
+          seats,
+        },
+      }),
+    )
+
+    setup()
+
+    expect(within(seatCard(1)).getByText('警長')).toBeInTheDocument()
+    expect(within(seatCard(4)).queryByText('警長')).not.toBeInTheDocument()
   })
 
   it('persists used flags and table states across closing the sheet and a reload', () => {
@@ -665,7 +812,7 @@ describe('App', () => {
         charmed: false,
         bound: false,
         dreamed: false,
-        protected: true,
+        protected: index === 0,
       },
     }))
     window.localStorage.setItem(

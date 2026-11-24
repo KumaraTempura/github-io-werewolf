@@ -376,19 +376,34 @@ export function notebookReducer(
           },
         }
       })
-    case 'game/toggleTableState':
-      return updateSeat(state, action.seat, (record) => {
-        if (!isTableStateId(action.tableState)) {
+    case 'game/toggleTableState': {
+      const { game } = state
+      if (
+        !game ||
+        !isSeatInGame(action.seat, game.setup.playerCount) ||
+        !isTableStateId(action.tableState)
+      ) {
+        return state
+      }
+      const checkedSeat = action.seat - 1
+      const turningOff = game.seats[checkedSeat].tableStates[action.tableState]
+      let changed = false
+      const seats = game.seats.map((record, index) => {
+        const value = !turningOff && index === checkedSeat
+        if (record.tableStates[action.tableState] === value) {
           return record
         }
+        changed = true
         return {
           ...record,
           tableStates: {
             ...record.tableStates,
-            [action.tableState]: !record.tableStates[action.tableState],
+            [action.tableState]: value,
           },
         }
       })
+      return changed ? { ...state, game: { ...game, seats } } : state
+    }
     case 'game/reset':
       return createNotebook()
   }
