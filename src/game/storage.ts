@@ -200,7 +200,7 @@ function parseGame(raw: unknown): ActiveGame | null {
   return { setup, seats }
 }
 
-export function parseNotebook(raw: unknown): NotebookState | null {
+function parseNotebook(raw: unknown): NotebookState | null {
   if (!isRecord(raw) || raw.version !== STORAGE_VERSION) {
     return null
   }
@@ -223,7 +223,7 @@ function isLegacySave(raw: unknown): boolean {
   )
 }
 
-export interface LoadedNotebook {
+interface LoadedNotebook {
   state: NotebookState
   legacyDiscarded: boolean
 }

@@ -40,7 +40,7 @@ export function shuffleAssignments(assignments: readonly string[]): string[] {
   return shuffled
 }
 
-export interface RoleCount {
+interface RoleCount {
   role: Role
   count: number
 }

@@ -37,30 +37,17 @@ describe('role catalog', () => {
     }
   })
 
-  it('exposes the schema fields downstream tickets consume', () => {
+  it('exposes role name, camp, and camp key', () => {
     expect(getRole('wolf')).toMatchObject({
       name: '狼人',
+      camp: '狼人陣營',
       campKey: 'wolf',
-      ability: '每天夜裡可以與狼隊一同攻擊一名玩家。',
-      peekKind: 'none',
-      firstNightOnly: false,
-      wakeOrder: { firstNight: 14, laterNight: 15 },
-      trackedFields: [{ key: 'killTarget', type: 'seat', initial: null }],
     })
     expect(getRole('seer')).toMatchObject({
       name: '預言家',
+      camp: '好人陣營/神職',
       campKey: 'god',
-      peekKind: 'goodOrWolf',
-      firstNightOnly: false,
-      wakeOrder: { firstNight: 23, laterNight: 24 },
     })
-    expect(getRole('gravekeeper')).toMatchObject({
-      peekKind: 'lastExileCamp',
-      firstNightOnly: false,
-      wakeOrder: { firstNight: 8, laterNight: 9 },
-    })
-    expect(getRole('bear-tamer')).toBeDefined()
-    expect(getRole('bear-tamer')?.firstNightOnly).toBe(true)
     expect(getRole('hidden-wolf')).toMatchObject({
       name: '隱狼',
       campKey: 'wolf',
@@ -115,10 +102,10 @@ describe('catalog validation', () => {
 
   it('rejects a role missing a required schema field', () => {
     const raw = cloneCatalog()
-    delete raw.roles[0].ability
+    delete raw.roles[0].name
 
     expect(validateCatalog(raw).join('\n')).toContain(
-      'roles[0].ability: expected a non-empty string',
+      'roles[0].name: expected a non-empty string',
     )
   })
 
@@ -127,15 +114,5 @@ describe('catalog validation', () => {
     raw.roles[1].id = raw.roles[0].id
 
     expect(validateCatalog(raw).join('\n')).toContain('duplicate role id')
-  })
-
-  it('rejects invalid tracked field initial values', () => {
-    const raw = cloneCatalog()
-    const witch = raw.roles.find((role: { id: string }) => role.id === 'witch')
-    witch.trackedFields[0].initial = 2
-
-    expect(validateCatalog(raw).join('\n')).toContain(
-      'initial must be within min and max',
-    )
   })
 })

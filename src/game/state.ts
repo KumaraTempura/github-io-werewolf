@@ -57,14 +57,14 @@ export interface NotebookState {
   game: ActiveGame | null
 }
 
-export type StartError =
+type StartError =
   | 'already-started'
   | 'invalid-player-count'
   | 'incomplete-assignments'
   | 'unknown-role'
   | 'unknown-board'
 
-export type StartResult =
+type StartResult =
   | { ok: true; state: NotebookState }
   | { ok: false; error: StartError }
 
@@ -92,7 +92,7 @@ function isSeatInGame(value: unknown, playerCount: number): value is number {
   return isSeat(value) && value <= playerCount
 }
 
-export function isKnownRoleId(value: unknown): value is string {
+function isKnownRoleId(value: unknown): value is string {
   return typeof value === 'string' && rolesById.has(value)
 }
 
@@ -100,11 +100,11 @@ function isKnownBoardId(value: unknown): value is string {
   return typeof value === 'string' && presetBoardsById.has(value)
 }
 
-export function isUsedFlagId(value: unknown): value is UsedFlagId {
+function isUsedFlagId(value: unknown): value is UsedFlagId {
   return USED_FLAGS.some((flag) => flag.id === value)
 }
 
-export function isTableStateId(value: unknown): value is TableStateId {
+function isTableStateId(value: unknown): value is TableStateId {
   return TABLE_STATES.some((tableState) => tableState.id === value)
 }
 
@@ -117,7 +117,7 @@ function blankBooleans<K extends string>(
   >
 }
 
-export function createSeatRecord(roleId: string | null = null): SeatRecord {
+function createSeatRecord(roleId: string | null = null): SeatRecord {
   return {
     roleId,
     out: false,
@@ -127,7 +127,7 @@ export function createSeatRecord(roleId: string | null = null): SeatRecord {
   }
 }
 
-export function createDraft(overrides: Partial<DraftState> = {}): DraftState {
+function createDraft(overrides: Partial<DraftState> = {}): DraftState {
   const playerCount = overrides.playerCount ?? 0
   const assignments =
     overrides.assignments !== undefined
@@ -145,7 +145,7 @@ export function createDraft(overrides: Partial<DraftState> = {}): DraftState {
 
 const DEFAULT_BOARD_ID = 'standard-333'
 
-export function createDefaultDraft(): DraftState {
+function createDefaultDraft(): DraftState {
   const preset = presetBoardsById.get(DEFAULT_BOARD_ID)
   if (!preset) {
     return createDraft()
@@ -168,7 +168,7 @@ export function isPlaying(
   return state.game !== null
 }
 
-export function startGame(state: NotebookState): StartResult {
+function startGame(state: NotebookState): StartResult {
   if (state.game !== null) {
     return { ok: false, error: 'already-started' }
   }
