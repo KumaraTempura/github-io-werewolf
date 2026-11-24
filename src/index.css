@@ -789,6 +789,39 @@ optgroup {
   text-align: left;
 }
 
+.game-seat__reveals {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.game-seat__reveals button {
+  min-height: 30px;
+  padding: 6px 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0b1120;
+  color: #cdd6ec;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+.game-seat__reveals button:first-child {
+  grid-column: 1 / -1;
+}
+
+.game-seat__reveals button:hover:not(:disabled) {
+  border-color: #3a4a6e;
+}
+
+.game-seat__reveals button:disabled {
+  opacity: 0.35;
+}
+
 .game-seat__tags {
   display: flex;
   flex-wrap: wrap;
@@ -1398,6 +1431,10 @@ optgroup {
 }
 
 @media (max-width: 380px) {
+  .game-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .assign-grid {
     grid-template-columns: 1fr;
   }

@@ -54,6 +54,18 @@ function startPhysicalGame() {
   return view
 }
 
+function openReveal(seat: number, label: string): HTMLElement {
+  fireEvent.click(
+    screen.getByRole('button', { name: `座位 ${seat} ${label}` }),
+  )
+  return screen.getByRole('dialog', { name: `座位 ${seat} ${label}` })
+}
+
+function dismissReveal(reveal: HTMLElement) {
+  fireEvent.click(reveal)
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+}
+
 afterEach(() => {
   cleanup()
 })
@@ -254,6 +266,87 @@ describe('App', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '標準 333' })).toBeInTheDocument()
+  })
+
+  it('shows a seat role reveal with its camp and hides it on a judge tap', () => {
+    startPhysicalGame()
+
+    const card = seatCard(1)
+    expect(within(card).getByText('顯示角色')).toBeInTheDocument()
+    expect(within(card).getByText('顯示好人')).toBeInTheDocument()
+    expect(within(card).getByText('顯示狼人')).toBeInTheDocument()
+
+    const reveal = openReveal(1, '顯示角色')
+    expect(within(reveal).getByText('狼人陣營')).toBeInTheDocument()
+    expect(
+      within(reveal).getByRole('heading', { name: '狼人' }),
+    ).toBeInTheDocument()
+
+    dismissReveal(reveal)
+  })
+
+  it('disables the role reveal while a seat has no marked role', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    fireEvent.change(screen.getByLabelText('座位 1 角色'), {
+      target: { value: '' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '關閉' }))
+
+    expect(
+      screen.getByRole('button', { name: '座位 1 顯示角色' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: '座位 1 顯示好人' }),
+    ).toBeEnabled()
+    expect(
+      screen.getByRole('button', { name: '座位 1 顯示狼人' }),
+    ).toBeEnabled()
+  })
+
+  it('shows judge-chosen good and bad reveals without changing the seat role or camp', () => {
+    startPhysicalGame()
+
+    const wolfReveal = openReveal(4, '顯示狼人')
+    expect(
+      within(wolfReveal).getByRole('heading', { name: '狼人' }),
+    ).toBeInTheDocument()
+    expect(
+      within(wolfReveal).queryByText('好人陣營/神職'),
+    ).not.toBeInTheDocument()
+    dismissReveal(wolfReveal)
+
+    const goodReveal = openReveal(1, '顯示好人')
+    expect(
+      within(goodReveal).getByRole('heading', { name: '好人' }),
+    ).toBeInTheDocument()
+    expect(
+      within(goodReveal).queryByText('狼人陣營'),
+    ).not.toBeInTheDocument()
+    dismissReveal(goodReveal)
+
+    expect(within(seatCard(4)).getByText('預言家')).toBeInTheDocument()
+    expect(
+      within(seatCard(4)).getByText('好人陣營/神職'),
+    ).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人陣營')).toBeInTheDocument()
+  })
+
+  it('does not bring a reveal back after a reload', () => {
+    const first = startPhysicalGame()
+
+    dismissReveal(openReveal(1, '顯示角色'))
+    dismissReveal(openReveal(1, '顯示好人'))
+    dismissReveal(openReveal(1, '顯示狼人'))
+
+    first.unmount()
+    setup()
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('狼人陣營')).toBeInTheDocument()
   })
 
   it('edits a seat role with a camp-grouped picker including the hidden wolf', () => {

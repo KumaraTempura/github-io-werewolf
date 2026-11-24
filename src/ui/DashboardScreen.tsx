@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getRole, presetBoardsById } from '../data/catalog'
+import { getRole, presetBoardsById, type Role } from '../data/catalog'
 import {
   TABLE_STATES,
   USED_FLAGS,
@@ -9,6 +9,26 @@ import {
   type UsedFlagId,
 } from '../game/state'
 import RoleOptions from './RoleOptions'
+
+const REVEAL_LABELS = {
+  role: '顯示角色',
+  good: '顯示好人',
+  wolf: '顯示狼人',
+} as const
+
+type RevealKind = keyof typeof REVEAL_LABELS
+
+const REVEAL_KINDS = Object.keys(REVEAL_LABELS) as RevealKind[]
+
+const REVEAL_RESULTS: Partial<Record<RevealKind, string>> = {
+  good: '好人',
+  wolf: '狼人',
+}
+
+interface ActiveReveal {
+  seat: number
+  kind: RevealKind
+}
 
 interface DashboardScreenProps {
   game: ActiveGame
@@ -31,21 +51,23 @@ export default function DashboardScreen({
 }: DashboardScreenProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [openSeatNumber, setOpenSeatNumber] = useState<number | null>(null)
+  const [reveal, setReveal] = useState<ActiveReveal | null>(null)
   const alive = game.seats.filter((seat) => !seat.out).length
 
   useEffect(() => {
-    if (!confirmingReset && openSeatNumber === null) {
+    if (!confirmingReset && openSeatNumber === null && reveal === null) {
       return
     }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setConfirmingReset(false)
         setOpenSeatNumber(null)
+        setReveal(null)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [confirmingReset, openSeatNumber])
+  }, [confirmingReset, openSeatNumber, reveal])
 
   return (
     <main className="shell game">
@@ -159,6 +181,19 @@ export default function DashboardScreen({
                 >
                   出局
                 </button>
+                <div className="game-seat__reveals">
+                  {REVEAL_KINDS.map((kind) => (
+                    <button
+                      type="button"
+                      key={kind}
+                      aria-label={`座位 ${seatNumber} ${REVEAL_LABELS[kind]}`}
+                      disabled={kind === 'role' && !role}
+                      onClick={() => setReveal({ seat: seatNumber, kind })}
+                    >
+                      {REVEAL_LABELS[kind]}
+                    </button>
+                  ))}
+                </div>
               </article>
             )
           })}
@@ -186,7 +221,53 @@ export default function DashboardScreen({
           onClose={() => setConfirmingReset(false)}
         />
       ) : null}
+
+      {reveal !== null ? (
+        <RevealScreen
+          seat={reveal.seat}
+          kind={reveal.kind}
+          role={
+            reveal.kind === 'role'
+              ? getRole(game.seats[reveal.seat - 1]?.roleId ?? '')
+              : undefined
+          }
+          onDismiss={() => setReveal(null)}
+        />
+      ) : null}
     </main>
+  )
+}
+
+interface RevealScreenProps {
+  seat: number
+  kind: RevealKind
+  role: Role | undefined
+  onDismiss: () => void
+}
+
+function RevealScreen({ seat, kind, role, onDismiss }: RevealScreenProps) {
+  const label = REVEAL_LABELS[kind]
+  const result = REVEAL_RESULTS[kind] ?? role?.name
+  if (!result) {
+    return null
+  }
+  return (
+    <div
+      className="judge-reveal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`座位 ${seat} ${label}`}
+      onClick={onDismiss}
+    >
+      <p className="judge-reveal__kicker">
+        座位 {seat} · {label}
+      </p>
+      {role ? <p className="judge-reveal__camp">{role.camp}</p> : null}
+      <h1>{result}</h1>
+      <button type="button" autoFocus onClick={onDismiss}>
+        收起
+      </button>
+    </div>
   )
 }
 
