@@ -2,12 +2,12 @@ import { useState, type ReactNode } from 'react'
 import { getRole, roles } from '../data/catalog'
 import type { DerivedGame, PeekCamp, PeekResult } from '../game/state'
 import type { NotebookDispatch } from '../game/useNotebook'
-import { formatPeekResult, formatSeats, groupRoles, peekKindLabel } from './dashboard'
+import { formatPeekResult, formatSeats } from './dashboard'
 import {
   computeCatalogResult,
-  defaultTeammateTargets,
   exactRoleResultFor,
   hasEnoughTargets,
+  initialPeekState,
   lastExiledSeat,
   planPeek,
   type PeekPlan,
@@ -16,71 +16,47 @@ import {
 interface PeekFlowProps {
   game: DerivedGame
   dispatch: NotebookDispatch
+  inspectorSeat: number
   onClose: () => void
 }
 
-interface InspectorChoice {
-  seat: number
-  roleId: string
-}
+type Step = 'target' | 'preview' | 'reveal'
 
-type Step = 'role' | 'target' | 'preview' | 'reveal'
-
-export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
-  const [step, setStep] = useState<Step>('role')
-  const [inspector, setInspector] = useState<InspectorChoice | null>(null)
-  const [targetSeats, setTargetSeats] = useState<number[]>([])
-  const [override, setOverride] = useState<PeekResult | null>(null)
-  const [editing, setEditing] = useState(false)
-
-  const role = inspector ? getRole(inspector.roleId) ?? null : null
+export default function PeekFlow({
+  game,
+  dispatch,
+  inspectorSeat,
+  onClose,
+}: PeekFlowProps) {
+  const role = getRole(game.seatRoles[inspectorSeat] ?? '') ?? null
   const plan = planPeek(role)
-  const catalogResult = inspector
-    ? computeCatalogResult(game, inspector.seat, targetSeats)
-    : null
+  const start = initialPeekState(game, inspectorSeat)
+  const [step, setStep] = useState<Step>(start?.step ?? 'target')
+  const [targetSeats, setTargetSeats] = useState<number[]>(
+    start?.targetSeats ?? [],
+  )
+  const [override, setOverride] = useState<PeekResult | null>(
+    start?.override ?? null,
+  )
+  const [editing, setEditing] = useState(start?.editing ?? false)
+
+  const catalogResult = computeCatalogResult(game, inspectorSeat, targetSeats)
   const result = override ?? catalogResult
-  const eventTargets =
-    targetSeats.length > 0 ? targetSeats : inspector ? [inspector.seat] : []
+  const seats = targetSeats.length > 0 ? targetSeats : [inspectorSeat]
 
   function resetChoices() {
     setOverride(null)
     setEditing(false)
   }
 
-  function openPreview(seat: number, roleId: string, seats: number[]) {
-    const nextRole = getRole(roleId) ?? null
-    const nextPlan = planPeek(nextRole)
-    const computed = computeCatalogResult(game, seat, seats)
-    setTargetSeats(seats)
-    if (!nextRole || nextRole.peekKind === 'none') {
-      setOverride(exactRoleResultFor(game, seats[0] ?? seat))
-      setEditing(true)
-    } else if (nextPlan.mode === 'lastExile' && !computed) {
+  function openPreview() {
+    if (plan.mode === 'lastExile' && !catalogResult) {
       setOverride({ kind: 'lastExileCamp', camp: 'good' })
       setEditing(true)
     } else {
       resetChoices()
     }
     setStep('preview')
-  }
-
-  function chooseInspector(seat: number, roleId: string) {
-    const nextRole = getRole(roleId) ?? null
-    const nextPlan = planPeek(nextRole)
-    setInspector({ seat, roleId })
-    resetChoices()
-    if (nextPlan.mode === 'lastExile') {
-      const exiled = lastExiledSeat(game)
-      openPreview(seat, roleId, exiled !== null ? [exiled] : [seat])
-      return
-    }
-    if (nextPlan.mode === 'teammates') {
-      setTargetSeats(defaultTeammateTargets(game, seat))
-      setStep('target')
-      return
-    }
-    setTargetSeats([])
-    setStep('target')
   }
 
   function toggleTarget(seat: number) {
@@ -108,36 +84,20 @@ export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
     setTargetSeats([seat])
   }
 
-  function backToRole() {
-    setInspector(null)
-    setTargetSeats([])
-    resetChoices()
-    setStep('role')
-  }
-
-  function backFromTarget() {
-    setTargetSeats([])
-    resetChoices()
-    setStep('role')
-  }
-
   function backFromPreview() {
     resetChoices()
     if (plan.mode === 'lastExile') {
-      backToRole()
+      onClose()
       return
     }
     setStep('target')
   }
 
   function beginCustomResult() {
-    if (!inspector) {
-      return
-    }
     setEditing(true)
     if (!override) {
       setOverride(
-        result ?? exactRoleResultFor(game, targetSeats[0] ?? inspector.seat),
+        result ?? exactRoleResultFor(game, targetSeats[0] ?? inspectorSeat),
       )
     }
   }
@@ -160,15 +120,14 @@ export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
   }
 
   function finish() {
-    if (!inspector || !result) {
+    if (!result) {
       return
     }
-    const seats = targetSeats.length > 0 ? targetSeats : [inspector.seat]
     dispatch({
       type: 'game/append',
       event: {
         type: 'peek',
-        inspectorSeat: inspector.seat,
+        inspectorSeat,
         targetSeat: seats[0],
         ...(seats.length > 1 ? { targetSeats: seats } : {}),
         result,
@@ -177,73 +136,33 @@ export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
     onClose()
   }
 
-  if (step === 'reveal' && inspector && role && result) {
+  if (!start || !role) {
+    return null
+  }
+
+  if (step === 'reveal' && result) {
     return (
       <PeekReveal
         roleName={role.name}
-        inspectorSeat={inspector.seat}
-        targetSeats={eventTargets}
+        inspectorSeat={inspectorSeat}
+        targetSeats={seats}
         plan={plan}
         result={result}
         onFinish={finish}
-        onCancel={() => setStep('preview')}
+        onCancel={onClose}
       />
     )
   }
 
-  const allSeats = Array.from({ length: game.setup.playerCount }, (_, index) => index + 1)
-  const outBySeat = new Map(game.outPlayers.map((player) => [player.seat, player.reason]))
+  const allSeats = Array.from(
+    { length: game.setup.playerCount },
+    (_, index) => index + 1,
+  )
+  const outBySeat = new Map(
+    game.outPlayers.map((player) => [player.seat, player.reason]),
+  )
 
-  if (step === 'role') {
-    const groups = groupRoles(game)
-    const inspectionRoles = groups.filter((group) => group.role.peekKind !== 'none')
-    const otherRoles = groups.filter((group) => group.role.peekKind === 'none')
-
-    return (
-      <Sheet title="查驗" label="查驗" onClose={onClose}>
-        <p className="sheet-note">
-          法官持有裝置。選角色與目標，出示後按完成記錄這次查驗。
-        </p>
-        <h3 className="peek-section">查驗角色</h3>
-        {inspectionRoles.length === 0 ? (
-          <p className="sheet-note">這一局沒有角色目錄列出的查驗能力。</p>
-        ) : (
-          <div className="peek-role-list">
-            {inspectionRoles.map((group) => (
-              <RoleChoice
-                key={group.role.id}
-                name={group.role.name}
-                note={peekKindLabel(group.role.peekKind)}
-                seats={group.holders.map((holder) => holder.seat)}
-                onChoose={(seat) => chooseInspector(seat, group.role.id)}
-              />
-            ))}
-          </div>
-        )}
-        {otherRoles.length > 0 ? (
-          <>
-            <h3 className="peek-section">其他角色 · 自訂查驗</h3>
-            <p className="sheet-note">
-              目錄沒有查驗能力；選一個座位後自行設定要出示的結果。
-            </p>
-            <div className="peek-role-list">
-              {otherRoles.map((group) => (
-                <RoleChoice
-                  key={group.role.id}
-                  name={group.role.name}
-                  note="自訂結果"
-                  seats={group.holders.map((holder) => holder.seat)}
-                  onChoose={(seat) => chooseInspector(seat, group.role.id)}
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-      </Sheet>
-    )
-  }
-
-  if (step === 'target' && inspector && role) {
+  if (step === 'target') {
     const label =
       plan.mode === 'teammates'
         ? '隊友座位'
@@ -269,7 +188,7 @@ export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
             className={`camp-dot camp-dot--${role.campKey}`}
             aria-hidden="true"
           />
-          {role.name} · {inspector.seat} 號
+          {role.name} · {inspectorSeat} 號
         </p>
         <p className="sheet-note">
           {plan.mode === 'teammates'
@@ -299,14 +218,14 @@ export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
           })}
         </div>
         <div className="confirm-actions">
-          <button type="button" onClick={backFromTarget}>
-            上一步
+          <button type="button" onClick={onClose}>
+            取消
           </button>
           <button
             type="button"
             className="primary"
             disabled={!hasEnoughTargets(plan, targetSeats.length)}
-            onClick={() => openPreview(inspector.seat, inspector.roleId, targetSeats)}
+            onClick={openPreview}
           >
             下一步
           </button>
@@ -315,87 +234,82 @@ export default function PeekFlow({ game, dispatch, onClose }: PeekFlowProps) {
     )
   }
 
-  if (step === 'preview' && inspector && role) {
-    const showExactOverride =
-      !editing &&
-      result !== null &&
-      result.kind !== 'exactRole' &&
-      targetSeats.length === 1
-    return (
-      <Sheet title="查驗預覽" label="查驗預覽" onClose={onClose}>
-        <p className="sheet-roleline">
-          <span
-            className={`camp-dot camp-dot--${role.campKey}`}
-            aria-hidden="true"
+  const showExactOverride =
+    !editing && result !== null && result.kind !== 'exactRole' && targetSeats.length === 1
+  return (
+    <Sheet title="查驗預覽" label="查驗預覽" onClose={onClose}>
+      <p className="sheet-roleline">
+        <span
+          className={`camp-dot camp-dot--${role.campKey}`}
+          aria-hidden="true"
+        />
+        {role.name} · 法官 {inspectorSeat} 號
+      </p>
+      <p className="sheet-note">
+        {targetSummary(game, inspectorSeat, plan, targetSeats)}
+      </p>
+      <div className="peek-result">
+        <span className="field-label">給 {inspectorSeat} 號看</span>
+        <strong className="peek-result__value">
+          {result ? formatPeekResult(result) : '—'}
+        </strong>
+      </div>
+      {showExactOverride ? (
+        <button type="button" className="ghost-btn" onClick={chooseExactRole}>
+          顯示確切角色
+        </button>
+      ) : null}
+      {!editing && override && catalogResult ? (
+        <button
+          type="button"
+          className="text-button"
+          onClick={restoreCatalogResult}
+        >
+          還原目錄結果
+        </button>
+      ) : null}
+      {editing ? (
+        <>
+          <PeekResultEditor
+            value={override}
+            playerCount={game.setup.playerCount}
+            fallbackRoleId={
+              (targetSeats[0] !== undefined
+                ? game.seatRoles[targetSeats[0]]
+                : game.seatRoles[inspectorSeat]) ?? null
+            }
+            onChange={(next) => setOverride(next)}
           />
-          {role.name} · 法官 {inspector.seat} 號
-        </p>
-        <p className="sheet-note">{targetSummary(game, inspector.seat, plan, targetSeats)}</p>
-        <div className="peek-result">
-          <span className="field-label">給 {inspector.seat} 號看</span>
-          <strong className="peek-result__value">
-            {result ? formatPeekResult(result) : '—'}
-          </strong>
-        </div>
-        {showExactOverride ? (
-          <button type="button" className="ghost-btn" onClick={chooseExactRole}>
-            顯示確切角色
-          </button>
-        ) : null}
-        {!editing && override && catalogResult ? (
-          <button
-            type="button"
-            className="text-button"
-            onClick={restoreCatalogResult}
-          >
-            還原目錄結果
-          </button>
-        ) : null}
-        {editing ? (
-          <>
-            <PeekResultEditor
-              value={override}
-              playerCount={game.setup.playerCount}
-              fallbackRoleId={
-                (targetSeats[0] !== undefined
-                  ? game.seatRoles[targetSeats[0]]
-                  : game.seatRoles[inspector.seat]) ?? null
-              }
-              onChange={(next) => setOverride(next)}
-            />
-            {catalogResult ? (
-              <button
-                type="button"
-                className="text-button"
-                onClick={restoreCatalogResult}
-              >
-                還原目錄結果
-              </button>
-            ) : null}
-          </>
-        ) : (
-          <button type="button" className="ghost-btn" onClick={beginCustomResult}>
-            自訂結果
-          </button>
-        )}
-        <div className="confirm-actions">
-          <button type="button" onClick={backFromPreview}>
-            上一步
-          </button>
-          <button
-            type="button"
-            className="primary"
-            disabled={!result}
-            onClick={() => setStep('reveal')}
-          >
-            出示給球員
-          </button>
-        </div>
-      </Sheet>
-    )
-  }
-
-  return null
+          {catalogResult ? (
+            <button
+              type="button"
+              className="text-button"
+              onClick={restoreCatalogResult}
+            >
+              還原目錄結果
+            </button>
+          ) : null}
+        </>
+      ) : (
+        <button type="button" className="ghost-btn" onClick={beginCustomResult}>
+          自訂結果
+        </button>
+      )}
+      <div className="confirm-actions">
+        <button type="button" onClick={backFromPreview}>
+          上一步
+        </button>
+        <button
+          type="button"
+          className="primary"
+          disabled={!result}
+          onClick={() => setStep('reveal')}
+        >
+          出示給玩家
+        </button>
+      </div>
+    </Sheet>
+  )
 }
 
 function targetSummary(
@@ -455,37 +369,6 @@ function Sheet({ title, label, onClose, children }: SheetProps) {
         <div className="sheet-body">{children}</div>
       </section>
     </>
-  )
-}
-
-interface RoleChoiceProps {
-  name: string
-  note: string
-  seats: readonly number[]
-  onChoose: (seat: number) => void
-}
-
-function RoleChoice({ name, note, seats, onChoose }: RoleChoiceProps) {
-  return (
-    <div className="peek-role">
-      <div className="peek-role__head">
-        <span className="peek-role__name">{name}</span>
-        <span className="peek-role__kind">{note}</span>
-      </div>
-      <div className="peek-role__seats">
-        {seats.map((seat) => (
-          <button
-            type="button"
-            key={seat}
-            className="peek-role__seat"
-            aria-label={`${name} 座位 ${seat} 查驗`}
-            onClick={() => onChoose(seat)}
-          >
-            {seat} 號
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 

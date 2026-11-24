@@ -10,6 +10,23 @@ import {
 
 export type GameMode = 'digital' | 'physical'
 
+export type Phase = 'night' | 'daytime'
+
+export interface PhaseState {
+  cycle: number
+  phase: Phase
+}
+
+export function initialPhase(): PhaseState {
+  return { cycle: 1, phase: 'night' }
+}
+
+export function nextPhase(current: PhaseState): PhaseState {
+  return current.phase === 'night'
+    ? { cycle: current.cycle, phase: 'daytime' }
+    : { cycle: current.cycle + 1, phase: 'night' }
+}
+
 const ELIMINATION_REASON_IDS = [
   'nightKill',
   'exile',
@@ -136,6 +153,10 @@ export interface NoteEvent {
   text: string
 }
 
+export interface PhaseEvent extends PhaseState {
+  type: 'phase'
+}
+
 export interface PeekEvent {
   type: 'peek'
   inspectorSeat: number
@@ -150,6 +171,7 @@ export type InGameEvent =
   | TableStateEvent
   | EliminationEvent
   | NoteEvent
+  | PhaseEvent
   | PeekEvent
 
 export type GameEvent = StartEvent | InGameEvent
@@ -195,6 +217,7 @@ export function peekTargetSeats(event: PeekEvent): readonly number[] {
 
 export interface DerivedGame {
   setup: Setup
+  currentPhase: PhaseState
   seatRoles: Readonly<Record<number, string>>
   usedBySeat: Readonly<Record<number, boolean>>
   roleStateBySeat: Readonly<Record<number, TrackedState>>
@@ -432,6 +455,26 @@ function normalizeEvent(event: InGameEvent, derived: DerivedGame): InGameEvent |
       }
       return { type: 'note', seat: event.seat, text }
     }
+    case 'phase': {
+      if (!Number.isInteger(event.cycle) || event.cycle < 1) {
+        return null
+      }
+      if (event.phase !== 'night' && event.phase !== 'daytime') {
+        return null
+      }
+      const current = derived.currentPhase
+      if (event.phase === 'daytime') {
+        if (current.phase !== 'night' || event.cycle !== current.cycle) {
+          return null
+        }
+      } else if (
+        current.phase !== 'daytime' ||
+        event.cycle !== current.cycle + 1
+      ) {
+        return null
+      }
+      return { type: 'phase', cycle: event.cycle, phase: event.phase }
+    }
     case 'peek': {
       if (
         !isSeatInGame(event.inspectorSeat, playerCount) ||
@@ -524,6 +567,7 @@ export function deriveGame(events: readonly GameEvent[]): DerivedGame | null {
   const outPlayers: OutPlayer[] = []
   const notes: NoteEntry[] = []
   const peeks: PeekEntry[] = []
+  let currentPhase: PhaseState = initialPhase()
 
   for (const event of events.slice(1)) {
     switch (event.type) {
@@ -555,6 +599,9 @@ export function deriveGame(events: readonly GameEvent[]): DerivedGame | null {
       case 'note':
         notes.push({ seat: event.seat, text: event.text })
         break
+      case 'phase':
+        currentPhase = { cycle: event.cycle, phase: event.phase }
+        break
       case 'peek': {
         const entry: PeekEntry = {
           inspectorSeat: event.inspectorSeat,
@@ -574,6 +621,7 @@ export function deriveGame(events: readonly GameEvent[]): DerivedGame | null {
 
   return {
     setup: { ...setup, assignments: [...setup.assignments] },
+    currentPhase,
     seatRoles,
     usedBySeat,
     roleStateBySeat,

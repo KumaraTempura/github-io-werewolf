@@ -22,7 +22,7 @@ import {
 
 export const NOTEBOOK_STORAGE_KEY = 'werewolf-judge-notebook:v1'
 
-const STORAGE_VERSION = 1
+const STORAGE_VERSION = 2
 
 export interface KeyValueStorage {
   getItem(key: string): string | null
@@ -214,6 +214,12 @@ function parseInGameEvent(raw: unknown): InGameEvent | null {
       return (raw.seat === null || isSeat(raw.seat)) && typeof raw.text === 'string'
         ? { type: 'note', seat: raw.seat, text: raw.text }
         : null
+    case 'phase':
+      return Number.isInteger(raw.cycle) &&
+        (raw.cycle as number) >= 1 &&
+        (raw.phase === 'night' || raw.phase === 'daytime')
+        ? { type: 'phase', cycle: raw.cycle as number, phase: raw.phase }
+        : null
     case 'peek': {
       const result = parsePeekResult(raw.result)
       if (!isSeat(raw.inspectorSeat) || !isSeat(raw.targetSeat) || !result) {
@@ -289,18 +295,39 @@ export function parseNotebook(raw: unknown): NotebookState | null {
   return state
 }
 
-export function loadNotebook(
+export interface LoadedNotebook {
+  state: NotebookState
+  legacyDiscarded: boolean
+}
+
+export function loadNotebookWithStatus(
   storage: KeyValueStorage = window.localStorage,
-): NotebookState {
+): LoadedNotebook {
   try {
     const raw = storage.getItem(NOTEBOOK_STORAGE_KEY)
     if (raw === null) {
-      return createNotebook()
+      return { state: createNotebook(), legacyDiscarded: false }
     }
-    return parseNotebook(JSON.parse(raw)) ?? createNotebook()
+    const parsed: unknown = JSON.parse(raw)
+    return {
+      state: parseNotebook(parsed) ?? createNotebook(),
+      legacyDiscarded: isRecord(parsed) && parsed.version === 1,
+    }
   } catch {
-    return createNotebook()
+    return { state: createNotebook(), legacyDiscarded: false }
   }
+}
+
+export function isLegacyNotebook(
+  storage: KeyValueStorage = window.localStorage,
+): boolean {
+  return loadNotebookWithStatus(storage).legacyDiscarded
+}
+
+export function loadNotebook(
+  storage: KeyValueStorage = window.localStorage,
+): NotebookState {
+  return loadNotebookWithStatus(storage).state
 }
 
 export function saveNotebook(

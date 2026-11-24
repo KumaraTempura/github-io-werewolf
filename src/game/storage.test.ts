@@ -9,6 +9,7 @@ import {
 } from './state'
 import {
   clearStoredNotebook,
+  isLegacyNotebook,
   loadNotebook,
   NOTEBOOK_STORAGE_KEY,
   parseNotebook,
@@ -67,6 +68,7 @@ function playingState(): NotebookState {
   state = result.state
   state = appendEvent(state, { type: 'used', seat: 6, used: true })
   state = appendEvent(state, { type: 'elimination', seat: 2, reason: 'exile' })
+  state = appendEvent(state, { type: 'phase', cycle: 1, phase: 'daytime' })
   state = appendEvent(state, {
     type: 'tableState',
     state: 'badge',
@@ -96,6 +98,7 @@ function playingState(): NotebookState {
     field: 'antidoteRemaining',
     value: 0,
   })
+  state = appendEvent(state, { type: 'phase', cycle: 2, phase: 'night' })
   return state
 }
 
@@ -139,7 +142,7 @@ describe('storage', () => {
     invalidDraft.setItem(
       NOTEBOOK_STORAGE_KEY,
       JSON.stringify({
-        version: 1,
+        version: 2,
         draft: { ...draftState().draft, assignments: ['no-such-role'] },
         events: [],
       }),
@@ -147,11 +150,50 @@ describe('storage', () => {
     expect(loadNotebook(invalidDraft)).toEqual(createNotebook())
   })
 
+  it('rejects an out-of-order phase event', () => {
+    const storage = new MemoryStorage()
+    const state = playingState()
+    const start = state.events[0]
+    storage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        draft: state.draft,
+        events: [start, { type: 'phase', cycle: 2, phase: 'night' }],
+      }),
+    )
+
+    expect(loadNotebook(storage)).toEqual(createNotebook())
+  })
+
+  it('flags a version 1 notebook for the discard notice', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({ version: 1, draft: draftState().draft, events: [] }),
+    )
+
+    expect(isLegacyNotebook(storage)).toBe(true)
+    expect(loadNotebook(storage)).toEqual(createNotebook())
+  })
+
+  it('does not flag current, absent, or corrupt notebooks', () => {
+    const current = new MemoryStorage()
+    saveNotebook(draftState(), current)
+    expect(isLegacyNotebook(current)).toBe(false)
+
+    expect(isLegacyNotebook(new MemoryStorage())).toBe(false)
+
+    const corrupt = new MemoryStorage()
+    corrupt.setItem(NOTEBOOK_STORAGE_KEY, '{not json')
+    expect(isLegacyNotebook(corrupt)).toBe(false)
+  })
+
   it('rejects a stored log the core would not accept', () => {
     const storage = new MemoryStorage()
     const stored = {
       ...playingState(),
-      version: 1,
+      version: 2,
       events: playingState().events.map((event, index) =>
         index === 1 ? { ...event, seat: 99 } : event,
       ),
@@ -171,7 +213,7 @@ describe('storage', () => {
     storage.setItem(
       NOTEBOOK_STORAGE_KEY,
       JSON.stringify({
-        version: 1,
+        version: 2,
         draft: { ...state.draft, assignments: [...standardAssignments].reverse() },
         events: state.events,
       }),

@@ -1,7 +1,11 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { createNotebook } from './state'
-import { loadNotebook, type KeyValueStorage } from './storage'
+import {
+  loadNotebook,
+  NOTEBOOK_STORAGE_KEY,
+  type KeyValueStorage,
+} from './storage'
 import { useNotebook } from './useNotebook'
 
 const standardAssignments = [
@@ -60,6 +64,25 @@ describe('useNotebook', () => {
     const second = renderHook(() => useNotebook(storage))
 
     expect(second.result.current[0]).toEqual(saved)
+  })
+
+  it('reports a discarded legacy notebook once', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        draft: createNotebook().draft,
+        events: [],
+      }),
+    )
+    const first = renderHook(() => useNotebook(storage))
+
+    expect(first.result.current[2]).toBe(true)
+    first.unmount()
+
+    const second = renderHook(() => useNotebook(storage))
+    expect(second.result.current[2]).toBe(false)
   })
 
   it('restores an active game', () => {

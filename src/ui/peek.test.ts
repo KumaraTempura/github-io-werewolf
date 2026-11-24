@@ -13,6 +13,7 @@ import {
   defaultTeammateTargets,
   exactRoleFor,
   hasEnoughTargets,
+  initialPeekState,
   lastExiledSeat,
   planPeek,
 } from './peek'
@@ -176,6 +177,56 @@ describe('computeCatalogResult', () => {
 
     expect(lastExiledSeat(game)).toBeNull()
     expect(computeCatalogResult(game, 7, [])).toBeNull()
+  })
+})
+
+describe('initialPeekState', () => {
+  it('starts target-based peeks on the target step', () => {
+    const game = gameWith()
+
+    expect(initialPeekState(game, 4)).toEqual({
+      step: 'target',
+      targetSeats: [],
+      override: null,
+      editing: false,
+    })
+    expect(initialPeekState(game, 11)).toEqual({
+      step: 'target',
+      targetSeats: [],
+      override: null,
+      editing: false,
+    })
+  })
+
+  it('preselects teammate targets', () => {
+    const game = gameWith()
+
+    expect(initialPeekState(game, 8)?.targetSeats).toEqual([1])
+    expect(initialPeekState(game, 9)?.targetSeats).toEqual([1, 2, 3, 6, 8, 10])
+  })
+
+  it('opens the gravekeeper preview with or without an exile', () => {
+    const empty = gameWith()
+    const exiled = gameWith([
+      { type: 'elimination', seat: 4, reason: 'exile' },
+    ])
+
+    expect(initialPeekState(empty, 7)).toEqual({
+      step: 'preview',
+      targetSeats: [],
+      override: { kind: 'lastExileCamp', camp: 'good' },
+      editing: true,
+    })
+    expect(initialPeekState(exiled, 7)).toEqual({
+      step: 'preview',
+      targetSeats: [4],
+      override: null,
+      editing: false,
+    })
+  })
+
+  it('returns nothing for a role without a peek ability', () => {
+    expect(initialPeekState(gameWith(), 12)).toBeNull()
   })
 })
 

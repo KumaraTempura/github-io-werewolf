@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import { NOTEBOOK_STORAGE_KEY } from './game/storage'
 
 function setup() {
   return render(<App />)
@@ -23,6 +24,42 @@ describe('App', () => {
     ).toBeInTheDocument()
     expect(screen.getByLabelText('板子')).toHaveValue('standard-333')
     expect(screen.getByRole('button', { name: '發牌（數位）' })).toBeEnabled()
+  })
+
+  it('discards a legacy notebook and says so once', async () => {
+    window.localStorage.setItem(
+      NOTEBOOK_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        draft: {
+          boardId: null,
+          playerCount: 0,
+          mode: 'digital',
+          assignments: [],
+          revealedSeats: [],
+        },
+        events: [],
+      }),
+    )
+
+    setup()
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '舊局紀錄已因日夜分類清除',
+    )
+    expect(
+      screen.getByRole('heading', { name: '把這一局記下來' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '實體發牌' }))
+    fireEvent.click(screen.getByRole('button', { name: '開始遊戲（實體）' }))
+    fireEvent.click(screen.getByRole('button', { name: '清除這一局' }))
+    fireEvent.click(screen.getByRole('button', { name: '清除遊戲' }))
+
+    expect(
+      await screen.findByRole('heading', { name: '把這一局記下來' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('deals every seat with judge-held reveals and starts the game', () => {
@@ -129,25 +166,55 @@ describe('dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: '開始遊戲（實體）' }))
   }
 
-  it('toggles the manual used flag for a seat', () => {
+  function openSeat(seat: number) {
+    fireEvent.click(screen.getByRole('button', { name: `座位 ${seat} 詳情` }))
+    return screen.getByRole('dialog', { name: `座位 ${seat} 狀態` })
+  }
+
+  it('uses seats as the only in-game surface', () => {
     startPhysicalGame()
 
-    const toggle = screen.getByRole('button', { name: '座位 4 已使用' })
+    expect(
+      screen.queryByRole('button', { name: '預言家 角色詳情' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: '查驗' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '事件記錄' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '復原上一步' })).toBeInTheDocument()
+  })
+
+  it('starts in night 1 and advances phases from the header', () => {
+    startPhysicalGame()
+
+    expect(screen.getByText('第 1 夜')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '進入白天' }))
+    expect(screen.getByText('第 1 天 · 白天')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '進入下一夜' }))
+    expect(screen.getByText('第 2 夜')).toBeInTheDocument()
+  })
+
+  it('toggles the manual used flag from the seat sheet', () => {
+    startPhysicalGame()
+
+    const sheet = openSeat(4)
+    const toggle = within(sheet).getByRole('button', { name: '座位 4 已使用' })
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
 
     fireEvent.click(toggle)
 
-    expect(screen.getByRole('button', { name: '座位 4 已使用' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
+    expect(
+      within(screen.getByRole('button', { name: '座位 4 詳情' })).getByText('已用'),
+    ).toBeInTheDocument()
   })
 
   it('sets and clears a table state from the seat sheet', () => {
     startPhysicalGame()
 
-    fireEvent.click(screen.getByRole('button', { name: '座位 2 詳情' }))
-    const sheet = screen.getByRole('dialog', { name: '座位 2 狀態' })
+    const sheet = openSeat(2)
     const toggle = within(sheet).getByRole('button', { name: '座位 2 禁言' })
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
 
@@ -171,8 +238,7 @@ describe('dashboard', () => {
   it('records an out player with a reason and undoes it', () => {
     startPhysicalGame()
 
-    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
-    const sheet = screen.getByRole('dialog', { name: '座位 1 狀態' })
+    const sheet = openSeat(1)
     fireEvent.click(
       within(sheet).getByRole('button', { name: '座位 1 出局 夜間擊殺' }),
     )
@@ -192,7 +258,8 @@ describe('dashboard', () => {
       within(log).getByText('1 號 狼人 出局（夜間擊殺）'),
     ).toBeInTheDocument()
 
-    fireEvent.click(within(log).getByRole('button', { name: '復原上一步' }))
+    fireEvent.click(within(log).getByRole('button', { name: '關閉' }))
+    fireEvent.click(screen.getByRole('button', { name: '復原上一步' }))
 
     expect(
       within(screen.getByRole('button', { name: '座位 1 詳情' })).queryByText(
@@ -201,34 +268,71 @@ describe('dashboard', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows catalog ability text and records tracked role state', () => {
+  it('keeps peek available for an out seat', () => {
     startPhysicalGame()
 
-    fireEvent.click(screen.getByRole('button', { name: '預言家 角色詳情' }))
-    const dialog = screen.getByRole('dialog', { name: '預言家 角色詳情' })
+    const sheet = openSeat(4)
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: '座位 4 出局 夜間擊殺' }),
+    )
+
+    expect(within(sheet).getByText('已出局')).toBeInTheDocument()
     expect(
-      within(dialog).getByText('每晚可以查驗一名玩家是好人還是狼人。'),
+      within(sheet).getByRole('button', { name: '座位 4 查驗' }),
+    ).toBeInTheDocument()
+    expect(
+      within(sheet).getByRole('button', { name: '座位 4 已使用' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shows catalog ability text and records tracked role state from the seat sheet', () => {
+    startPhysicalGame()
+
+    const sheet = openSeat(4)
+    expect(
+      within(sheet).getByText('每晚可以查驗一名玩家是好人還是狼人。'),
     ).toBeInTheDocument()
 
     fireEvent.click(
-      within(dialog).getByRole('button', { name: '4 號 · 已查驗座位 5 號' }),
+      within(sheet).getByRole('button', { name: '4 號 · 已查驗座位 5 號' }),
     )
-    fireEvent.change(within(dialog).getByLabelText('4 號 · 最近查驗陣營'), {
+    fireEvent.change(within(sheet).getByLabelText('4 號 · 最近查驗陣營'), {
       target: { value: 'wolf' },
     })
 
-    expect(screen.getByText(/已查驗座位：5 號/)).toBeInTheDocument()
-    expect(screen.getByText(/最近查驗陣營：狼人/)).toBeInTheDocument()
+    expect(
+      within(sheet).getByRole('button', { name: '4 號 · 已查驗座位 5 號' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(within(sheet).getByLabelText('4 號 · 最近查驗陣營')).toHaveValue(
+      'wolf',
+    )
   })
 
-  it('records a judge-held peek and warns before undoing it', () => {
+  it('offers peek only on roles with a peek ability', () => {
     startPhysicalGame()
 
-    fireEvent.click(screen.getByRole('button', { name: '查驗' }))
-    const pickRole = screen.getByRole('dialog', { name: '查驗' })
-    fireEvent.click(
-      within(pickRole).getByRole('button', { name: '預言家 座位 4 查驗' }),
-    )
+    const witch = openSeat(5)
+    expect(within(witch).getByText('技能')).toBeInTheDocument()
+    expect(
+      within(witch).queryByRole('button', { name: '座位 5 查驗' }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(within(witch).getByRole('button', { name: '關閉' }))
+
+    const villager = openSeat(9)
+    expect(within(villager).queryByText('技能')).not.toBeInTheDocument()
+    expect(
+      within(villager).queryByRole('button', { name: '座位 9 已使用' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(villager).queryByRole('button', { name: '座位 9 查驗' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('records a judge-held peek from the seat sheet and warns before undoing it', () => {
+    startPhysicalGame()
+
+    const sheet = openSeat(4)
+    fireEvent.click(within(sheet).getByRole('button', { name: '座位 4 查驗' }))
 
     const pickTarget = screen.getByRole('dialog', { name: '選擇查驗目標' })
     fireEvent.click(
@@ -241,7 +345,7 @@ describe('dashboard', () => {
       within(preview).getByText('狼人', { selector: '.peek-result__value' }),
     ).toBeInTheDocument()
     fireEvent.click(
-      within(preview).getByRole('button', { name: '出示給球員' }),
+      within(preview).getByRole('button', { name: '出示給玩家' }),
     )
 
     const reveal = screen.getByRole('dialog', { name: '查驗結果' })
@@ -250,11 +354,15 @@ describe('dashboard', () => {
     ).toBeInTheDocument()
     fireEvent.click(within(reveal).getByRole('button', { name: '完成' }))
 
+    const reopened = screen.getByRole('dialog', { name: '座位 4 狀態' })
+    fireEvent.click(within(reopened).getByRole('button', { name: '關閉' }))
+
     fireEvent.click(screen.getByRole('button', { name: '事件記錄' }))
     const log = screen.getByRole('dialog', { name: '事件記錄' })
     expect(within(log).getByText(/預言家查驗 1 號 · 狼人/)).toBeInTheDocument()
 
-    fireEvent.click(within(log).getByRole('button', { name: '復原上一步' }))
+    fireEvent.click(within(log).getByRole('button', { name: '關閉' }))
+    fireEvent.click(screen.getByRole('button', { name: '復原上一步' }))
     const warning = screen.getByRole('alertdialog', { name: '復原查驗' })
     expect(within(warning).getByText(/不會讓玩家忘記/)).toBeInTheDocument()
     fireEvent.click(within(warning).getByRole('button', { name: '仍要復原' }))
@@ -267,15 +375,23 @@ describe('dashboard', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('returns to the seat sheet when a peek is cancelled', () => {
+    startPhysicalGame()
+
+    const sheet = openSeat(4)
+    fireEvent.click(within(sheet).getByRole('button', { name: '座位 4 查驗' }))
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+
+    expect(
+      screen.getByRole('dialog', { name: '座位 4 狀態' }),
+    ).toBeInTheDocument()
+  })
+
   it('overrides a peek to the exact role', () => {
     startPhysicalGame()
 
-    fireEvent.click(screen.getByRole('button', { name: '查驗' }))
-    fireEvent.click(
-      within(screen.getByRole('dialog', { name: '查驗' })).getByRole('button', {
-        name: '預言家 座位 4 查驗',
-      }),
-    )
+    const sheet = openSeat(4)
+    fireEvent.click(within(sheet).getByRole('button', { name: '座位 4 查驗' }))
     fireEvent.click(screen.getByRole('button', { name: '查驗座位 4' }))
     fireEvent.click(screen.getByRole('button', { name: '下一步' }))
 
@@ -291,7 +407,7 @@ describe('dashboard', () => {
     ).toBeInTheDocument()
 
     fireEvent.click(
-      within(preview).getByRole('button', { name: '出示給球員' }),
+      within(preview).getByRole('button', { name: '出示給玩家' }),
     )
     fireEvent.click(
       within(screen.getByRole('dialog', { name: '查驗結果' })).getByRole(
@@ -308,56 +424,50 @@ describe('dashboard', () => {
     ).toBeInTheDocument()
   })
 
-  it('falls back to a custom result for roles without catalog peeks', () => {
+  it('groups events into day and night cycle tabs', () => {
     startPhysicalGame()
 
-    fireEvent.click(screen.getByRole('button', { name: '查驗' }))
-    fireEvent.click(
-      within(screen.getByRole('dialog', { name: '查驗' })).getByRole('button', {
-        name: '女巫 座位 5 查驗',
-      }),
-    )
-    fireEvent.click(screen.getByRole('button', { name: '查驗座位 1' }))
-    fireEvent.click(screen.getByRole('button', { name: '下一步' }))
+    const sheet = openSeat(4)
+    fireEvent.click(within(sheet).getByRole('button', { name: '座位 4 已使用' }))
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
 
-    const preview = screen.getByRole('dialog', { name: '查驗預覽' })
-    expect(
-      within(preview).getByLabelText('自訂查驗結果類型'),
-    ).toBeInTheDocument()
-    fireEvent.click(
-      within(preview).getByRole('button', { name: '出示給球員' }),
-    )
-    fireEvent.click(
-      within(screen.getByRole('dialog', { name: '查驗結果' })).getByRole(
-        'button',
-        { name: '完成' },
-      ),
-    )
+    fireEvent.click(screen.getByRole('button', { name: '進入白天' }))
+    fireEvent.click(screen.getByRole('button', { name: '進入下一夜' }))
 
     fireEvent.click(screen.getByRole('button', { name: '事件記錄' }))
+    const log = screen.getByRole('dialog', { name: '事件記錄' })
+
+    expect(within(log).getByRole('tab', { name: '第 2 天' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(within(log).getByText('第 2 夜開始')).toBeInTheDocument()
+    expect(within(log).getByText(/共 2 筆/)).toBeInTheDocument()
     expect(
-      within(screen.getByRole('dialog', { name: '事件記錄' })).getByText(
-        /女巫查驗 1 號 · 狼人/,
-      ),
-    ).toBeInTheDocument()
+      within(log).queryByRole('button', { name: '復原上一步' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(within(log).getByRole('tab', { name: '第 1 天' }))
+
+    expect(within(log).getByText('第 1 天白天開始')).toBeInTheDocument()
+    expect(within(log).getByText(/開始遊戲 · 實體發牌 · 9 人/)).toBeInTheDocument()
+    expect(within(log).getByText(/標記為已使用/)).toBeInTheDocument()
   })
 
-  it('lists the event log and undoes the last event', () => {
+  it('undoes the last event from the dock', () => {
     startPhysicalGame()
-    fireEvent.click(screen.getByRole('button', { name: '座位 4 已使用' }))
 
-    fireEvent.click(screen.getByRole('button', { name: '事件記錄' }))
-    const dialog = screen.getByRole('dialog', { name: '事件記錄' })
-    expect(within(dialog).getByText(/開始遊戲 · 實體發牌 · 9 人/)).toBeInTheDocument()
-    expect(within(dialog).getByText(/標記為已使用/)).toBeInTheDocument()
+    const sheet = openSeat(4)
+    const toggle = within(sheet).getByRole('button', { name: '座位 4 已使用' })
+    fireEvent.click(toggle)
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
 
-    fireEvent.click(within(dialog).getByRole('button', { name: '復原上一步' }))
+    fireEvent.click(screen.getByRole('button', { name: '復原上一步' }))
 
-    expect(screen.queryByRole('dialog', { name: '事件記錄' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '座位 4 已使用' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
+    const reopened = openSeat(4)
+    expect(
+      within(reopened).getByRole('button', { name: '座位 4 已使用' }),
+    ).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('clears the game only after confirmation', async () => {

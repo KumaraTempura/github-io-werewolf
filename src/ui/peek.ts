@@ -14,6 +14,13 @@ export interface PeekPlan {
   targetCount: number
 }
 
+export interface PeekStart {
+  step: 'target' | 'preview'
+  targetSeats: number[]
+  override: PeekResult | null
+  editing: boolean
+}
+
 export function planPeek(role: Role | null): PeekPlan {
   if (!role) {
     return { mode: 'custom', peekKind: 'none', targetCount: 1 }
@@ -169,6 +176,38 @@ export function computeCatalogResult(
       return { kind: 'lastExileCamp', camp: campForSeat(game, seat) }
     }
   }
+}
+
+export function initialPeekState(
+  game: DerivedGame,
+  inspectorSeat: number,
+): PeekStart | null {
+  const role = getRole(game.seatRoles[inspectorSeat] ?? '')
+  if (!role || role.peekKind === 'none') {
+    return null
+  }
+  const plan = planPeek(role)
+  if (plan.mode === 'lastExile') {
+    const exiled = lastExiledSeat(game)
+    const targetSeats = exiled !== null ? [exiled] : []
+    return computeCatalogResult(game, inspectorSeat, [])
+      ? { step: 'preview', targetSeats, override: null, editing: false }
+      : {
+          step: 'preview',
+          targetSeats,
+          override: { kind: 'lastExileCamp', camp: 'good' },
+          editing: true,
+        }
+  }
+  if (plan.mode === 'teammates') {
+    return {
+      step: 'target',
+      targetSeats: defaultTeammateTargets(game, inspectorSeat),
+      override: null,
+      editing: false,
+    }
+  }
+  return { step: 'target', targetSeats: [], override: null, editing: false }
 }
 
 export function hasEnoughTargets(plan: PeekPlan, count: number): boolean {

@@ -1,19 +1,24 @@
-import { useEffect, useReducer, type Dispatch } from 'react'
+import { useEffect, useReducer, useState, type Dispatch } from 'react'
 import {
   notebookReducer,
   type NotebookAction,
   type NotebookState,
 } from './state'
-import { loadNotebook, saveNotebook, type KeyValueStorage } from './storage'
+import {
+  loadNotebookWithStatus,
+  saveNotebook,
+  type KeyValueStorage,
+} from './storage'
 
 export type NotebookDispatch = Dispatch<NotebookAction>
 
 export function useNotebook(
   storage?: KeyValueStorage,
-): readonly [NotebookState, NotebookDispatch] {
-  const [state, dispatch] = useReducer(notebookReducer, null, () =>
-    storage ? loadNotebook(storage) : loadNotebook(),
+): readonly [NotebookState, NotebookDispatch, boolean] {
+  const [initial] = useState(() =>
+    storage ? loadNotebookWithStatus(storage) : loadNotebookWithStatus(),
   )
+  const [state, dispatch] = useReducer(notebookReducer, initial.state)
 
   useEffect(() => {
     if (storage) {
@@ -23,5 +28,5 @@ export function useNotebook(
     }
   }, [state, storage])
 
-  return [state, dispatch] as const
+  return [state, dispatch, initial.legacyDiscarded] as const
 }

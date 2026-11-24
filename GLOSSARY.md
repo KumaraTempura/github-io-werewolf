@@ -36,6 +36,22 @@ _Avoid_: Lobby, pre-game
 The judge action that commits the draft as one event with the final assignments and begins the game.
 _Avoid_: Begin, launch
 
+**Cycle**:
+One night and the following daytime, displayed as 第 N 天 and used as the event log's tab unit.
+_Avoid_: Day, round, day-night cycle
+
+**Night**:
+The first phase of a cycle (夜晚).
+_Avoid_: Evening, night phase
+
+**Daytime**:
+The second phase of a cycle (白天), following its night.
+_Avoid_: Day
+
+**Phase**:
+One of the two parts of a cycle: night or daytime.
+_Avoid_: Stage, step, period
+
 **Reveal**:
 The judge-held display of a seat's role or peek result to that player, hidden again after they have seen it.
 _Avoid_: Hand-over, pass-and-play
@@ -49,7 +65,7 @@ The append-only record of judge-entered events. It does not validate or enforce 
 _Avoid_: Engine, simulator
 
 **Event** (事件):
-One judge-recorded action or change: deal, ability use, peek, elimination, table-state change, or note. Undo removes the last event.
+One judge-recorded action or change: deal, phase advance, ability use, peek, elimination, table-state change, or note. Undo removes the last event.
 _Avoid_: Action, log entry, step
 
 **Table state** (場上狀態):
@@ -65,5 +81,5 @@ A private, role-aware reveal to the player using an inspection ability: exact ro
 _Avoid_: Inspect, check, view role
 
 **Used** (已使用):
-A manual judge-set flag that a role's ability has been used. The app does not infer it.
+A manual judge-set flag that a role's ability has been used. It persists across cycles; advancing a phase does not reset it. The app does not infer it.
 _Avoid_: Spent, consumed

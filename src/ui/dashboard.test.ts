@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { getRole, initialTrackedState } from '../data/catalog'
-import { deriveGame, type Setup, type StartEvent } from '../game/state'
+import { getRole } from '../data/catalog'
 import {
+  type GameEvent,
+  type Setup,
+  type StartEvent,
+} from '../game/state'
+import {
+  advancePhaseLabel,
+  countActionEvents,
+  cycleTabLabel,
   describeEvent,
   formatPeekResult,
   formatTrackedValue,
-  groupRoles,
-  trackedSummary,
+  hasCatalogAbility,
+  logCycles,
+  peekActionLabel,
+  phaseLabel,
+  phaseMarkerLabel,
 } from './dashboard'
 
 const SETUP: Setup = {
@@ -27,47 +37,6 @@ const SETUP: Setup = {
 }
 
 const START: StartEvent = { type: 'start', setup: SETUP }
-
-function derived() {
-  const game = deriveGame([START])
-  if (!game) {
-    throw new Error('expected a derived game')
-  }
-  return game
-}
-
-describe('groupRoles', () => {
-  it('groups holders by role in seat order', () => {
-    const groups = groupRoles(derived())
-    expect(groups.map((group) => group.role.id)).toEqual([
-      'wolf',
-      'seer',
-      'witch',
-      'hunter',
-      'villager',
-    ])
-    expect(groups[0].holders.map((holder) => holder.seat)).toEqual([1, 2, 3])
-    expect(groups[4].holders).toHaveLength(3)
-  })
-})
-
-describe('trackedSummary', () => {
-  it('lists only values changed from their initial state', () => {
-    const seer = getRole('seer')
-    if (!seer) {
-      throw new Error('missing seer')
-    }
-    const state = initialTrackedState(seer)
-    state.checkedSeats = [5, 7]
-    state.lastCheckCamp = 'wolf'
-
-    expect(trackedSummary(seer, state)).toEqual([
-      '已查驗座位：5、7 號',
-      '最近查驗陣營：狼人',
-    ])
-    expect(trackedSummary(seer, initialTrackedState(seer))).toEqual([])
-  })
-})
 
 describe('formatTrackedValue', () => {
   it('formats every tracked field type', () => {
@@ -109,6 +78,89 @@ describe('formatPeekResult', () => {
   })
 })
 
+describe('phase labels', () => {
+  it('labels the current phase and the advance action', () => {
+    expect(phaseLabel(2, 'night')).toBe('第 2 夜')
+    expect(phaseLabel(2, 'daytime')).toBe('第 2 天 · 白天')
+    expect(advancePhaseLabel('night')).toBe('進入白天')
+    expect(advancePhaseLabel('daytime')).toBe('進入下一夜')
+    expect(cycleTabLabel(2)).toBe('第 2 天')
+  })
+
+  it('labels phase markers', () => {
+    expect(phaseMarkerLabel({ type: 'phase', cycle: 2, phase: 'night' })).toBe(
+      '第 2 夜開始',
+    )
+    expect(phaseMarkerLabel({ type: 'phase', cycle: 2, phase: 'daytime' })).toBe(
+      '第 2 天白天開始',
+    )
+  })
+})
+
+describe('peekActionLabel', () => {
+  it('uses a readable action name for each peek kind', () => {
+    expect(peekActionLabel('exactRole')).toBe('查驗')
+    expect(peekActionLabel('goodOrWolf')).toBe('查驗')
+    expect(peekActionLabel('teammateNumber')).toBe('查看隊友')
+    expect(peekActionLabel('lastExileCamp')).toBe('查看上次放逐')
+  })
+})
+
+describe('hasCatalogAbility', () => {
+  it('is false only for a role with no tracked fields and no peek', () => {
+    const seer = getRole('seer')
+    const villager = getRole('villager')
+    if (!seer || !villager) {
+      throw new Error('missing roles')
+    }
+
+    expect(hasCatalogAbility(seer)).toBe(true)
+    expect(hasCatalogAbility(villager)).toBe(false)
+  })
+})
+
+describe('logCycles', () => {
+  const history: GameEvent[] = [
+    START,
+    { type: 'used', seat: 4, used: true },
+    { type: 'phase', cycle: 1, phase: 'daytime' },
+    { type: 'elimination', seat: 2, reason: 'exile' },
+    { type: 'phase', cycle: 2, phase: 'night' },
+    { type: 'tableState', state: 'silenced', seats: [6] },
+  ]
+
+  it('groups rows by cycle newest first with global action numbers', () => {
+    const cycles = logCycles(history, 2)
+
+    expect(cycles.map((cycle) => cycle.cycle)).toEqual([2, 1])
+    expect(cycles[0].rows.map((row) => row.number)).toEqual([4, null])
+    expect(cycles[0].rows.map((row) => row.phase)).toEqual(['night', 'night'])
+    expect(cycles[1].rows.map((row) => row.number)).toEqual([3, null, 2, 1])
+    expect(cycles[1].rows.map((row) => row.phase)).toEqual([
+      'daytime',
+      'daytime',
+      'night',
+      'night',
+    ])
+    expect(countActionEvents(history)).toBe(4)
+  })
+
+  it('keeps the current cycle and drops older empty cycles', () => {
+    const emptyMiddle: GameEvent[] = [
+      START,
+      { type: 'phase', cycle: 1, phase: 'daytime' },
+      { type: 'phase', cycle: 2, phase: 'night' },
+      { type: 'phase', cycle: 2, phase: 'daytime' },
+      { type: 'phase', cycle: 3, phase: 'night' },
+    ]
+
+    const cycles = logCycles(emptyMiddle, 3)
+
+    expect(cycles.map((cycle) => cycle.cycle)).toEqual([3, 1])
+    expect(cycles[0].rows.map((row) => row.number)).toEqual([null])
+  })
+})
+
 describe('describeEvent', () => {
   it('describes each event type', () => {
     expect(describeEvent(START, SETUP)).toBe('開始遊戲 · 實體發牌 · 9 人')
@@ -141,6 +193,9 @@ describe('describeEvent', () => {
     expect(describeEvent({ type: 'note', seat: 3, text: '狼刀' }, SETUP)).toBe(
       '3 號 · 狼刀',
     )
+    expect(
+      describeEvent({ type: 'phase', cycle: 2, phase: 'night' }, SETUP),
+    ).toBe('第 2 夜開始')
     expect(
       describeEvent(
         {

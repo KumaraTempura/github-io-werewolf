@@ -16,10 +16,17 @@ function initialScreen(draft: DraftState): 'setup' | 'deal' {
 }
 
 export default function App() {
-  const [state, dispatch] = useNotebook()
+  const [state, dispatch, legacyDiscarded] = useNotebook()
+  const [showLegacyNotice, setShowLegacyNotice] = useState(legacyDiscarded)
   const [screen, setScreen] = useState<'setup' | 'deal'>(() =>
     initialScreen(state.draft),
   )
+
+  useEffect(() => {
+    if (isPlaying(state) || screen === 'deal') {
+      setShowLegacyNotice(false)
+    }
+  }, [state, screen])
 
   useEffect(() => {
     if (isPlaying(state)) {
@@ -74,6 +81,7 @@ export default function App() {
     <SetupScreen
       draft={state.draft}
       dispatch={dispatch}
+      legacyDiscarded={showLegacyNotice}
       onDeal={() => setScreen('deal')}
     />
   )

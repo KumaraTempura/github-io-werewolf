@@ -3,7 +3,6 @@ import {
   getRole,
   presetBoardsById,
   roles,
-  type Role,
   type TrackedField,
   type TrackedFieldValue,
 } from '../data/catalog'
@@ -12,6 +11,7 @@ import {
   ELIMINATION_REASONS,
   TABLE_STATES,
   deriveGame,
+  nextPhase,
   type DerivedGame,
   type EliminationReason,
   type NotebookState,
@@ -20,14 +20,17 @@ import {
 } from '../game/state'
 import type { NotebookDispatch } from '../game/useNotebook'
 import {
+  advancePhaseLabel,
+  countActionEvents,
+  cycleTabLabel,
   describeEvent,
   eventKindLabel,
-  formatSeats,
   formatTrackedValue,
-  groupRoles,
-  peekKindLabel,
-  trackedSummary,
-  type RoleHolder,
+  hasCatalogAbility,
+  logCycles,
+  peekActionLabel,
+  phaseLabel,
+  phaseMarkerLabel,
 } from './dashboard'
 import PeekFlow from './PeekFlow'
 
@@ -38,10 +41,8 @@ interface DashboardScreenProps {
 }
 
 type OpenSheet =
-  | { kind: 'role'; roleId: string }
   | { kind: 'seat'; seat: number }
   | { kind: 'log' }
-  | { kind: 'peek' }
   | { kind: 'undoPeek' }
   | { kind: 'clear' }
   | null
@@ -52,6 +53,7 @@ export default function DashboardScreen({
   onClear,
 }: DashboardScreenProps) {
   const [sheet, setSheet] = useState<OpenSheet>(null)
+  const [peekSeat, setPeekSeat] = useState<number | null>(null)
   const game = deriveGame(state.events)
 
   useEffect(() => {
@@ -72,18 +74,9 @@ export default function DashboardScreen({
   }
 
   const alive = game.setup.playerCount - game.outPlayers.length
+  const actionCount = countActionEvents(game.history)
   const lastEvent = game.history[game.history.length - 1]
   const outBySeat = new Map(game.outPlayers.map((player) => [player.seat, player.reason]))
-  const roleGroups = groupRoles(game)
-  const openRole =
-    sheet?.kind === 'role' ? getRole(sheet.roleId) ?? null : null
-  const openRoleHolders = openRole
-    ? roleGroups.find((group) => group.role.id === openRole.id)?.holders ?? []
-    : []
-
-  function setUsed(seat: number, used: boolean) {
-    dispatch({ type: 'game/append', event: { type: 'used', seat, used } })
-  }
 
   function performUndo() {
     setSheet(null)
@@ -96,6 +89,29 @@ export default function DashboardScreen({
       return
     }
     performUndo()
+  }
+
+  function advancePhase() {
+    if (!game) {
+      return
+    }
+    dispatch({
+      type: 'game/append',
+      event: { type: 'phase', ...nextPhase(game.currentPhase) },
+    })
+  }
+
+  function openPeek(seat: number) {
+    setSheet(null)
+    setPeekSeat(seat)
+  }
+
+  function closePeek() {
+    const seat = peekSeat
+    setPeekSeat(null)
+    if (seat !== null) {
+      setSheet({ kind: 'seat', seat })
+    }
   }
 
   function clearGame() {
@@ -132,58 +148,24 @@ export default function DashboardScreen({
         </p>
       </header>
 
-      <section aria-label="角色列表">
-        <h2 className="field-label">角色</h2>
-        <div className="role-list">
-          {roleGroups.map(({ role, holders }) => (
-            <div className="role-row" key={role.id}>
-              <div className="role-row__head">
-                <button
-                  type="button"
-                  className="role-row__name"
-                  aria-label={`${role.name} 角色詳情`}
-                  onClick={() => setSheet({ kind: 'role', roleId: role.id })}
-                >
-                  <span>
-                    {role.name}
-                    {holders.length > 1 ? ` ×${holders.length}` : ''}
-                  </span>
-                  <small>{role.camp}</small>
-                </button>
-                <div className="role-row__seats">
-                  {holders.map((holder) => (
-                    <button
-                      type="button"
-                      key={holder.seat}
-                      className={`role-seat${holder.used ? ' is-used' : ''}`}
-                      aria-label={`座位 ${holder.seat} 已使用`}
-                      aria-pressed={holder.used}
-                      onClick={() => setUsed(holder.seat, !holder.used)}
-                    >
-                      {holder.seat} 號 · {holder.used ? '已用' : '未用'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {holders.map((holder) => {
-                const lines = trackedSummary(role, game.roleStateBySeat[holder.seat])
-                if (lines.length === 0) {
-                  return null
-                }
-                return (
-                  <p className="role-row__state" key={`state-${holder.seat}`}>
-                    <b>{holder.seat} 號</b>
-                    {lines.join(' · ')}
-                  </p>
-                )
-              })}
-            </div>
-          ))}
+      <section className="phase-bar" aria-label="目前階段">
+        <div className="phase-bar__now">
+          <span className="phase-bar__eyebrow">目前階段</span>
+          <strong>
+            {phaseLabel(game.currentPhase.cycle, game.currentPhase.phase)}
+          </strong>
         </div>
+        <button
+          type="button"
+          className="phase-bar__advance"
+          onClick={advancePhase}
+        >
+          {advancePhaseLabel(game.currentPhase.phase)}
+        </button>
       </section>
 
       <section aria-label="座位一覽">
-        <h2 className="field-label field-label--spaced">座位</h2>
+        <h2 className="field-label">座位</h2>
         <div className="game-grid">
           {Array.from({ length: game.setup.playerCount }, (_, index) => {
             const seat = index + 1
@@ -226,45 +208,27 @@ export default function DashboardScreen({
             )
           })}
         </div>
-        <p className="sheet-note">點座位可設定場上狀態與出局。</p>
+        <p className="sheet-note">點座位使用技能、設定場上狀態與出局。</p>
       </section>
 
       <nav className="dash-dock" aria-label="法官操作">
         <button
           type="button"
-          className="dash-dock__peek"
-          aria-label="查驗"
-          onClick={() => setSheet({ kind: 'peek' })}
-        >
-          查驗
-        </button>
-        <button
-          type="button"
           aria-label="事件記錄"
           onClick={() => setSheet({ kind: 'log' })}
         >
-          事件 <span className="dash-dock__count">{game.history.length}</span>
+          事件 <span className="dash-dock__count">{actionCount}</span>
         </button>
         <button type="button" aria-label="復原上一步" onClick={requestUndo}>
           復原
         </button>
       </nav>
 
-      {sheet && sheet.kind !== 'peek' ? (
+      {sheet ? (
         <div
           className="sheet-backdrop"
           aria-hidden="true"
           onClick={() => setSheet(null)}
-        />
-      ) : null}
-
-      {openRole ? (
-        <RoleSheet
-          role={openRole}
-          holders={openRoleHolders}
-          game={game}
-          dispatch={dispatch}
-          onClose={() => setSheet(null)}
         />
       ) : null}
 
@@ -273,6 +237,7 @@ export default function DashboardScreen({
           seat={sheet.seat}
           game={game}
           dispatch={dispatch}
+          onPeek={openPeek}
           onClose={() => setSheet(null)}
         />
       ) : null}
@@ -281,16 +246,17 @@ export default function DashboardScreen({
         <EventLogSheet
           setup={game.setup}
           history={game.history}
-          onUndo={requestUndo}
+          currentCycle={game.currentPhase.cycle}
           onClose={() => setSheet(null)}
         />
       ) : null}
 
-      {sheet?.kind === 'peek' ? (
+      {peekSeat !== null ? (
         <PeekFlow
           game={game}
           dispatch={dispatch}
-          onClose={() => setSheet(null)}
+          inspectorSeat={peekSeat}
+          onClose={closePeek}
         />
       ) : null}
 
@@ -319,18 +285,34 @@ interface SeatSheetProps {
   seat: number
   game: DerivedGame
   dispatch: NotebookDispatch
+  onPeek: (seat: number) => void
   onClose: () => void
 }
 
-function SeatSheet({ seat, game, dispatch, onClose }: SeatSheetProps) {
+function SeatSheet({ seat, game, dispatch, onPeek, onClose }: SeatSheetProps) {
   const role = getRole(game.seatRoles[seat] ?? '')
   const out = game.outPlayers.find((player) => player.seat === seat)
+  const used = game.usedBySeat[seat] ?? false
+  const showSkill = role !== undefined && hasCatalogAbility(role)
+  const peekKind = role && role.peekKind !== 'none' ? role.peekKind : null
+  const peekLabel = peekKind ? peekActionLabel(peekKind) : null
+
+  function setUsed(used: boolean) {
+    dispatch({ type: 'game/append', event: { type: 'used', seat, used } })
+  }
 
   function toggleTableState(state: TableStateId, active: boolean) {
     const seats = active
       ? [...game.tableStates[state], seat].sort((a, b) => a - b)
       : game.tableStates[state].filter((entry) => entry !== seat)
     dispatch({ type: 'game/append', event: { type: 'tableState', state, seats } })
+  }
+
+  function updateField(field: TrackedField, value: TrackedFieldValue) {
+    dispatch({
+      type: 'game/append',
+      event: { type: 'roleState', seat, field: field.key, value },
+    })
   }
 
   function eliminate(reason: EliminationReason) {
@@ -365,6 +347,8 @@ function SeatSheet({ seat, game, dispatch, onClose }: SeatSheetProps) {
           />
           {role ? `${role.name} · ${role.camp}` : '—'}
         </p>
+        {role ? <p className="sheet-ability">{role.ability}</p> : null}
+        {role?.peekNote ? <p className="sheet-note">{role.peekNote}</p> : null}
 
         {out ? (
           <div className="out-banner" role="status">
@@ -374,6 +358,43 @@ function SeatSheet({ seat, game, dispatch, onClose }: SeatSheetProps) {
               復原只移除最後一筆事件；若要更正較早的紀錄，需先復原它之後的事件。
             </p>
           </div>
+        ) : null}
+
+        {showSkill && role ? (
+          <section className="seat-section" aria-label="技能">
+            <h3 className="seat-section__head">技能</h3>
+            <div className="skill-actions">
+              <button
+                type="button"
+                className={`used-toggle${used ? ' is-on' : ''}`}
+                aria-label={`座位 ${seat} 已使用`}
+                aria-pressed={used}
+                onClick={() => setUsed(!used)}
+              >
+                {used ? '已使用 · 點擊取消' : '標記為已使用'}
+              </button>
+              {peekLabel ? (
+                <button
+                  type="button"
+                  className="skill-action"
+                  aria-label={`座位 ${seat} ${peekLabel}`}
+                  onClick={() => onPeek(seat)}
+                >
+                  {peekLabel}
+                </button>
+              ) : null}
+            </div>
+            {role.trackedFields.map((field) => (
+              <TrackedFieldEditor
+                key={field.key}
+                seat={seat}
+                field={field}
+                value={game.roleStateBySeat[seat]?.[field.key]}
+                playerCount={game.setup.playerCount}
+                onChange={(value) => updateField(field, value)}
+              />
+            ))}
+          </section>
         ) : null}
 
         <section className="seat-section" aria-label="場上狀態">
@@ -417,105 +438,6 @@ function SeatSheet({ seat, game, dispatch, onClose }: SeatSheetProps) {
             </div>
           </section>
         )}
-      </div>
-    </section>
-  )
-}
-
-interface RoleSheetProps {
-  role: Role
-  holders: readonly RoleHolder[]
-  game: DerivedGame
-  dispatch: NotebookDispatch
-  onClose: () => void
-}
-
-function RoleSheet({ role, holders, game, dispatch, onClose }: RoleSheetProps) {
-  function setUsed(seat: number, used: boolean) {
-    dispatch({ type: 'game/append', event: { type: 'used', seat, used } })
-  }
-
-  function updateField(seat: number, field: TrackedField, value: TrackedFieldValue) {
-    dispatch({
-      type: 'game/append',
-      event: { type: 'roleState', seat, field: field.key, value },
-    })
-  }
-
-  return (
-    <section
-      className="sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${role.name} 角色詳情`}
-    >
-      <div className="sheet-grip" aria-hidden="true" />
-      <header className="sheet-head">
-        <h2>{role.name}</h2>
-        <button
-          type="button"
-          className="sheet-close"
-          aria-label="關閉"
-          autoFocus
-          onClick={onClose}
-        >
-          ×
-        </button>
-      </header>
-      <div className="sheet-body">
-        <p className="sheet-roleline">
-          <span
-            className={`camp-dot camp-dot--${role.campKey}`}
-            aria-hidden="true"
-          />
-          {role.camp}
-        </p>
-        <p className="sheet-ability">{role.ability}</p>
-        {role.peekNote ? <p className="sheet-note">{role.peekNote}</p> : null}
-        <dl className="sheet-facts">
-          <div>
-            <dt>查驗方式</dt>
-            <dd>{peekKindLabel(role.peekKind)}</dd>
-          </div>
-          <div>
-            <dt>在場座位</dt>
-            <dd>{formatSeats(holders.map((holder) => holder.seat))}</dd>
-          </div>
-        </dl>
-
-        {holders.map((holder) => {
-          const roleState = game.roleStateBySeat[holder.seat]
-          return (
-            <section className="holder" key={holder.seat}>
-              <header className="holder__head">
-                <h3>{holder.seat} 號</h3>
-                <button
-                  type="button"
-                  className={`used-toggle${holder.used ? ' is-on' : ''}`}
-                  aria-label={`座位 ${holder.seat} 已使用`}
-                  aria-pressed={holder.used}
-                  onClick={() => setUsed(holder.seat, !holder.used)}
-                >
-                  {holder.used ? '已使用 · 點擊取消' : '標記為已使用'}
-                </button>
-              </header>
-              {role.trackedFields.length === 0 ? (
-                <p className="sheet-note">此角色沒有追蹤欄位。</p>
-              ) : (
-                role.trackedFields.map((field) => (
-                  <TrackedFieldEditor
-                    key={field.key}
-                    seat={holder.seat}
-                    field={field}
-                    value={roleState?.[field.key]}
-                    playerCount={game.setup.playerCount}
-                    onChange={(value) => updateField(holder.seat, field, value)}
-                  />
-                ))
-              )}
-            </section>
-          )
-        })}
       </div>
     </section>
   )
@@ -763,14 +685,20 @@ function TrackedFieldEditor({
 interface EventLogSheetProps {
   setup: Setup
   history: DerivedGame['history']
-  onUndo: () => void
+  currentCycle: number
   onClose: () => void
 }
 
-function EventLogSheet({ setup, history, onUndo, onClose }: EventLogSheetProps) {
-  const entries = history
-    .map((event, index) => ({ event, index }))
-    .reverse()
+function EventLogSheet({
+  setup,
+  history,
+  currentCycle,
+  onClose,
+}: EventLogSheetProps) {
+  const cycles = logCycles(history, currentCycle)
+  const [selectedCycle, setSelectedCycle] = useState(currentCycle)
+  const selected = cycles.find((cycle) => cycle.cycle === selectedCycle) ?? cycles[0]
+  const total = countActionEvents(history)
 
   return (
     <section
@@ -793,29 +721,54 @@ function EventLogSheet({ setup, history, onUndo, onClose }: EventLogSheetProps) 
         </button>
       </header>
       <div className="sheet-body">
-        <p className="sheet-note">共 {history.length} 筆 · 復原只移除最後一筆</p>
+        <p className="sheet-note">
+          共 {total} 筆 · 最新在上 · 復原請用底部按鈕
+        </p>
+        <div className="log-tabs" role="tablist" aria-label="日夜分類">
+          {cycles.map(({ cycle }) => {
+            const on = cycle === selected?.cycle
+            return (
+              <button
+                type="button"
+                role="tab"
+                key={cycle}
+                className={`log-tab${on ? ' is-on' : ''}`}
+                aria-selected={on}
+                onClick={() => setSelectedCycle(cycle)}
+              >
+                {cycleTabLabel(cycle)}
+              </button>
+            )
+          })}
+        </div>
         <ol className="log-list">
-          {entries.map(({ event, index }) => (
-            <li className="log-entry" key={index}>
-              <span className="log-entry__no">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <span className="log-entry__text">
-                {describeEvent(event, setup)}
-              </span>
-              <span className="log-entry__kind">{eventKindLabel(event)}</span>
-            </li>
-          ))}
+          {selected?.rows.map((row, index) =>
+            row.event.type === 'phase' ? (
+              <li className="log-entry log-entry--phase" key={index}>
+                <span className="log-entry__marker">
+                  {phaseMarkerLabel(row.event)}
+                </span>
+              </li>
+            ) : (
+              <li className="log-entry" key={index}>
+                <span className="log-entry__no">
+                  {String(row.number ?? 0).padStart(2, '0')}
+                </span>
+                <span className="log-entry__text">
+                  {describeEvent(row.event, setup)}
+                </span>
+                <span className="log-entry__meta">
+                  <i className="log-entry__phase">
+                    {row.phase === 'night' ? '夜晚' : '白天'}
+                  </i>
+                  <span className="log-entry__kind">
+                    {eventKindLabel(row.event)}
+                  </span>
+                </span>
+              </li>
+            ),
+          )}
         </ol>
-        <button
-          type="button"
-          className="ghost-btn ghost-btn--danger"
-          aria-label="復原上一步"
-          disabled={history.length === 0}
-          onClick={onUndo}
-        >
-          復原上一步
-        </button>
       </div>
     </section>
   )

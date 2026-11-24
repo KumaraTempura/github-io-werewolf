@@ -1,5 +1,7 @@
 # Night console layout
 
+Status: partly superseded by ADR-0011 (role strip and dock peek removed; seat sheet is the in-game hub).
+
 The judge console uses the "night console" layout picked from the throwaway prototype: a single centered column, large seat-number tiles on the dashboard, a role strip with manual used flags, and a fixed action dock (peek / events / undo). Seat state, role detail, and the event log open as bottom sheets, and judge-held reveals take over the full screen. This keeps one-handed phone use primary while remaining a centered console on desktop.
 
 ## Considered Options

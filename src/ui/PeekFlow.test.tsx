@@ -56,11 +56,15 @@ describe('PeekFlow', () => {
   it('records a two-seat awakened seer peek as one event', () => {
     const dispatch = vi.fn()
     const onClose = vi.fn()
-    render(<PeekFlow game={gameWith()} dispatch={dispatch} onClose={onClose} />)
-
-    fireEvent.click(
-      screen.getByRole('button', { name: '覺醒預言家 座位 11 查驗' }),
+    render(
+      <PeekFlow
+        game={gameWith()}
+        dispatch={dispatch}
+        inspectorSeat={11}
+        onClose={onClose}
+      />,
     )
+
     fireEvent.click(screen.getByRole('button', { name: '查驗座位 1' }))
     fireEvent.click(screen.getByRole('button', { name: '查驗座位 12' }))
     fireEvent.click(screen.getByRole('button', { name: '下一步' }))
@@ -70,7 +74,7 @@ describe('PeekFlow', () => {
       within(preview).getByText('狼人', { selector: '.peek-result__value' }),
     ).toBeInTheDocument()
     fireEvent.click(
-      within(preview).getByRole('button', { name: '出示給球員' }),
+      within(preview).getByRole('button', { name: '出示給玩家' }),
     )
 
     const reveal = screen.getByRole('dialog', { name: '查驗結果' })
@@ -99,12 +103,9 @@ describe('PeekFlow', () => {
       <PeekFlow
         game={gameWith([{ type: 'elimination', seat: 4, reason: 'exile' }])}
         dispatch={dispatch}
+        inspectorSeat={7}
         onClose={onClose}
       />,
-    )
-
-    fireEvent.click(
-      screen.getByRole('button', { name: '守墓人 座位 7 查驗' }),
     )
 
     const preview = screen.getByRole('dialog', { name: '查驗預覽' })
@@ -117,7 +118,7 @@ describe('PeekFlow', () => {
       }),
     ).toBeInTheDocument()
     fireEvent.click(
-      within(preview).getByRole('button', { name: '出示給球員' }),
+      within(preview).getByRole('button', { name: '出示給玩家' }),
     )
     fireEvent.click(
       within(screen.getByRole('dialog', { name: '查驗結果' })).getByRole(
@@ -135,5 +136,75 @@ describe('PeekFlow', () => {
         result: { kind: 'lastExileCamp', camp: 'good' },
       },
     })
+  })
+
+  it('offers the known teammates by default', () => {
+    render(
+      <PeekFlow
+        game={gameWith()}
+        dispatch={vi.fn()}
+        inspectorSeat={9}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '隊友座位 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: '隊友座位 2' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: '下一步' })).toBeEnabled()
+  })
+
+  it('returns to the seat when cancelled', () => {
+    const onClose = vi.fn()
+    render(
+      <PeekFlow
+        game={gameWith()}
+        dispatch={vi.fn()}
+        inspectorSeat={11}
+        onClose={onClose}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('returns to the seat when the reveal is cancelled', () => {
+    const onClose = vi.fn()
+    render(
+      <PeekFlow
+        game={gameWith()}
+        dispatch={vi.fn()}
+        inspectorSeat={11}
+        onClose={onClose}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '查驗座位 1' }))
+    fireEvent.click(screen.getByRole('button', { name: '查驗座位 12' }))
+    fireEvent.click(screen.getByRole('button', { name: '下一步' }))
+    fireEvent.click(screen.getByRole('button', { name: '出示給玩家' }))
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('renders nothing for a role without a peek ability', () => {
+    const { container } = render(
+      <PeekFlow
+        game={gameWith()}
+        dispatch={vi.fn()}
+        inspectorSeat={12}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(container).toBeEmptyDOMElement()
   })
 })

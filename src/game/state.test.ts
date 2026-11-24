@@ -5,10 +5,12 @@ import {
   createNotebook,
   deriveGame,
   isPlaying,
+  nextPhase,
   notebookReducer,
   startGame,
   undoLast,
   type DraftState,
+  type InGameEvent,
   type NotebookAction,
   type NotebookState,
 } from './state'
@@ -273,6 +275,68 @@ describe('start', () => {
 
     expect(next.draft).toEqual(draft)
     expect(next.events).toEqual(state.events)
+  })
+})
+
+describe('phase', () => {
+  it('starts in the first night', () => {
+    expect(derivedOf(started()).currentPhase).toEqual({ cycle: 1, phase: 'night' })
+  })
+
+  it('advances to daytime and then to the next night', () => {
+    let state = started()
+
+    state = appendEvent(state, { type: 'phase', cycle: 1, phase: 'daytime' })
+    expect(derivedOf(state).currentPhase).toEqual({ cycle: 1, phase: 'daytime' })
+
+    state = appendEvent(state, { type: 'phase', cycle: 2, phase: 'night' })
+    expect(derivedOf(state).currentPhase).toEqual({ cycle: 2, phase: 'night' })
+    expect(state.events).toHaveLength(3)
+  })
+
+  it('computes the next phase', () => {
+    expect(nextPhase({ cycle: 1, phase: 'night' })).toEqual({
+      cycle: 1,
+      phase: 'daytime',
+    })
+    expect(nextPhase({ cycle: 1, phase: 'daytime' })).toEqual({
+      cycle: 2,
+      phase: 'night',
+    })
+  })
+
+  it('rejects out-of-order phase events', () => {
+    let state = started()
+    const invalid: InGameEvent[] = [
+      { type: 'phase', cycle: 1, phase: 'night' },
+      { type: 'phase', cycle: 2, phase: 'night' },
+      { type: 'phase', cycle: 2, phase: 'daytime' },
+      { type: 'phase', cycle: 0, phase: 'daytime' },
+    ]
+
+    for (const event of invalid) {
+      expect(appendEvent(state, event)).toBe(state)
+    }
+
+    state = appendEvent(state, { type: 'phase', cycle: 1, phase: 'daytime' })
+    expect(appendEvent(state, { type: 'phase', cycle: 1, phase: 'daytime' })).toBe(
+      state,
+    )
+    expect(appendEvent(state, { type: 'phase', cycle: 3, phase: 'night' })).toBe(
+      state,
+    )
+    expect(appendEvent(state, { type: 'phase', cycle: 2, phase: 'night' })).not.toBe(
+      state,
+    )
+  })
+
+  it('undoes a phase advance', () => {
+    let state = started()
+    state = appendEvent(state, { type: 'phase', cycle: 1, phase: 'daytime' })
+
+    state = undoLast(state)
+
+    expect(derivedOf(state).currentPhase).toEqual({ cycle: 1, phase: 'night' })
   })
 })
 

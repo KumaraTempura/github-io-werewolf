@@ -4,27 +4,18 @@ import {
   type Role,
   type TrackedField,
   type TrackedFieldValue,
-  type TrackedState,
 } from '../data/catalog'
 import {
   ELIMINATION_REASON_LABELS,
   TABLE_STATE_LABELS,
+  initialPhase,
   peekTargetSeats,
-  type DerivedGame,
   type GameEvent,
   type PeekResult,
+  type Phase,
+  type PhaseEvent,
   type Setup,
 } from '../game/state'
-
-export interface RoleHolder {
-  seat: number
-  used: boolean
-}
-
-export interface RoleGroup {
-  role: Role
-  holders: readonly RoleHolder[]
-}
 
 const ENUM_LABELS: Readonly<Record<string, string>> = {
   good: '好人',
@@ -34,12 +25,13 @@ const ENUM_LABELS: Readonly<Record<string, string>> = {
   poison: '毒藥',
 }
 
-const PEEK_KIND_LABELS: Readonly<Record<PeekKind, string>> = {
-  none: '無查驗',
-  teammateNumber: '隊友號碼',
-  exactRole: '確切角色',
-  goodOrWolf: '好人／狼人',
-  lastExileCamp: '上次放逐陣營',
+type PeekActionKind = Exclude<PeekKind, 'none'>
+
+const PEEK_ACTION_LABELS: Readonly<Record<PeekActionKind, string>> = {
+  teammateNumber: '查看隊友',
+  exactRole: '查驗',
+  goodOrWolf: '查驗',
+  lastExileCamp: '查看上次放逐',
 }
 
 const EVENT_KIND_LABELS: Readonly<Record<GameEvent['type'], string>> = {
@@ -49,6 +41,7 @@ const EVENT_KIND_LABELS: Readonly<Record<GameEvent['type'], string>> = {
   tableState: '狀態',
   elimination: '出局',
   note: '備註',
+  phase: '階段',
   peek: '查驗',
 }
 
@@ -56,61 +49,104 @@ export function enumLabel(value: string): string {
   return ENUM_LABELS[value] ?? getRole(value)?.name ?? value
 }
 
-export function peekKindLabel(kind: PeekKind): string {
-  return PEEK_KIND_LABELS[kind]
+export function peekActionLabel(kind: PeekActionKind): string {
+  return PEEK_ACTION_LABELS[kind]
+}
+
+export function hasCatalogAbility(role: Role): boolean {
+  return role.trackedFields.length > 0 || role.peekKind !== 'none'
+}
+
+export function phaseLabel(cycle: number, phase: Phase): string {
+  return phase === 'night' ? `第 ${cycle} 夜` : `第 ${cycle} 天 · 白天`
+}
+
+export function advancePhaseLabel(phase: Phase): string {
+  return phase === 'night' ? '進入白天' : '進入下一夜'
+}
+
+export function cycleTabLabel(cycle: number): string {
+  return `第 ${cycle} 天`
+}
+
+export function phaseMarkerLabel(event: PhaseEvent): string {
+  return event.phase === 'night'
+    ? `第 ${event.cycle} 夜開始`
+    : `第 ${event.cycle} 天白天開始`
+}
+
+export interface LogRow {
+  event: GameEvent
+  number: number | null
+  phase: Phase
+}
+
+export interface LogCycle {
+  cycle: number
+  rows: readonly LogRow[]
+}
+
+export function isPhaseEvent(event: GameEvent): event is PhaseEvent {
+  return event.type === 'phase'
+}
+
+export function countActionEvents(history: readonly GameEvent[]): number {
+  return history.reduce(
+    (count, event) => count + (isPhaseEvent(event) ? 0 : 1),
+    0,
+  )
+}
+
+export function logCycles(
+  history: readonly GameEvent[],
+  currentCycle: number,
+): readonly LogCycle[] {
+  const rowsByCycle = new Map<number, LogRow[]>()
+  const start = initialPhase()
+  let cycle = start.cycle
+  let phase = start.phase
+  let number = 0
+
+  for (const event of history) {
+    if (isPhaseEvent(event)) {
+      cycle = event.cycle
+      phase = event.phase
+    } else {
+      number += 1
+    }
+    const rows = rowsByCycle.get(cycle) ?? []
+    rows.push({
+      event,
+      number: isPhaseEvent(event) ? null : number,
+      phase,
+    })
+    rowsByCycle.set(cycle, rows)
+  }
+
+  const cycles: LogCycle[] = []
+  for (const [cycleNumber, rows] of rowsByCycle) {
+    const actionCount = rows.reduce(
+      (count, row) => count + (row.number === null ? 0 : 1),
+      0,
+    )
+    if (actionCount === 0 && cycleNumber !== currentCycle) {
+      continue
+    }
+    cycles.push({
+      cycle: cycleNumber,
+      rows: [...rows].reverse(),
+    })
+  }
+
+  return cycles.sort((a, b) => b.cycle - a.cycle)
 }
 
 export function eventKindLabel(event: GameEvent): string {
   return EVENT_KIND_LABELS[event.type]
 }
 
-export function groupRoles(game: DerivedGame): readonly RoleGroup[] {
-  const order: string[] = []
-  const holders = new Map<string, RoleHolder[]>()
-  const { playerCount, assignments } = game.setup
-
-  for (let seat = 1; seat <= playerCount; seat += 1) {
-    const roleId = assignments[seat - 1]
-    if (!roleId || !getRole(roleId)) {
-      continue
-    }
-    if (!holders.has(roleId)) {
-      order.push(roleId)
-      holders.set(roleId, [])
-    }
-    holders.get(roleId)?.push({
-      seat,
-      used: game.usedBySeat[seat] ?? false,
-    })
-  }
-
-  const groups: RoleGroup[] = []
-  for (const roleId of order) {
-    const role = getRole(roleId)
-    const seats = holders.get(roleId)
-    if (role && seats) {
-      groups.push({ role, holders: seats })
-    }
-  }
-  return groups
-}
-
 export function formatSeats(seats: readonly number[]): string {
   return seats.length > 0 ? `${seats.join('、')} 號` : '—'
-}
-
-function equalValues(
-  a: TrackedFieldValue,
-  b: TrackedFieldValue,
-): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return JSON.stringify(a) === JSON.stringify(b)
-  }
-  return a === b
-}
-
-export function isInitialValue(field: TrackedField, value: TrackedFieldValue): boolean {
-  return equalValues(field.initial, value)
 }
 
 export function formatTrackedValue(
@@ -143,24 +179,6 @@ export function formatTrackedValue(
             .join('、')
         : '—'
   }
-}
-
-export function trackedSummary(
-  role: Role,
-  state: TrackedState | undefined,
-): readonly string[] {
-  if (!state) {
-    return []
-  }
-  const lines: string[] = []
-  for (const field of role.trackedFields) {
-    const value = state[field.key]
-    if (value === undefined || isInitialValue(field, value)) {
-      continue
-    }
-    lines.push(`${field.label}：${formatTrackedValue(field, value)}`)
-  }
-  return lines
 }
 
 export function formatPeekResult(result: PeekResult): string {
@@ -212,6 +230,8 @@ export function describeEvent(event: GameEvent, setup: Setup): string {
       }）`
     case 'note':
       return event.seat === null ? event.text : `${event.seat} 號 · ${event.text}`
+    case 'phase':
+      return phaseMarkerLabel(event)
     case 'peek': {
       const inspector = seatRoleName(setup, event.inspectorSeat)
       if (

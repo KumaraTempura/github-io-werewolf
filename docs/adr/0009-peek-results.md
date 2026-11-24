@@ -1,5 +1,7 @@
 # Peek results and custom fallback
 
+Status: partly superseded by ADR-0011 (peek starts from a seat; any-role custom peek retired).
+
 The peek flow derives the shown result from the inspecting role's catalog `peekKind` against the current derived game: exact role (with the mirror maiden seeing a mimicked awakened hidden wolf's mimicked role), good/wolf camp, teammate numbers, or the last exiled player's camp. The judge chooses the inspector and the target seats; for teammate-number peeks the selected seats are the numbers revealed, so 尋香魅影 can reveal one and 狼鴉之爪 can reveal every known wolf. A single-target peek can be one-tap overridden to the target's exact role.
 
 Roles whose catalog peek kind is `none`, and any peek the judge wants to treat under custom rules, use a manual result editor with the same four result kinds. This keeps the notebook non-enforcing: any in-play role can peek any seat, at any time, any number of times, and the judge can record a result the catalog would not derive.

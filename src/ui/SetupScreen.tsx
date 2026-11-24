@@ -17,6 +17,7 @@ import {
 interface SetupScreenProps {
   draft: DraftState
   dispatch: NotebookDispatch
+  legacyDiscarded?: boolean
   onDeal: () => void
 }
 
@@ -29,6 +30,7 @@ function clampPlayerCount(count: number): number {
 export default function SetupScreen({
   draft,
   dispatch,
+  legacyDiscarded = false,
   onDeal,
 }: SetupScreenProps) {
   const board = draft.boardId ? presetBoardsById.get(draft.boardId) ?? null : null
@@ -125,6 +127,12 @@ export default function SetupScreen({
           單一裝置、法官操作。選板子與發牌方式，開始前都能修改。
         </p>
       </section>
+
+      {legacyDiscarded ? (
+        <p className="legacy-notice" role="status">
+          舊局紀錄已因日夜分類清除。
+        </p>
+      ) : null}
 
       <section className="card" aria-label="開局設定">
         <label className="field-label" htmlFor="board">

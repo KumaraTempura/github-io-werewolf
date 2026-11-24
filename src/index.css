@@ -139,6 +139,16 @@ p {
   margin-bottom: 22px;
 }
 
+.legacy-notice {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #5b4426;
+  border-radius: 12px;
+  background: #2b1f14;
+  color: #f0c988;
+  font-size: 13px;
+}
+
 .card {
   padding: 20px;
   border: 1px solid var(--line);
@@ -622,6 +632,49 @@ optgroup {
   font-variant-numeric: tabular-nums;
 }
 
+.phase-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid #5a4725;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1a2135, #101728);
+}
+
+.phase-bar__now {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phase-bar__eyebrow {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.phase-bar__now strong {
+  color: var(--gold);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.phase-bar__advance {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--gold);
+  color: var(--gold-deep);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .game-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -733,92 +786,13 @@ optgroup {
   padding-left: 0;
 }
 
-.role-list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.role-row {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--panel-2);
-}
-
-.role-row__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.role-row__name {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-width: 110px;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-}
-
-.role-row__name span {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.role-row__name small {
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.role-row__seats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.role-seat {
-  padding: 5px 9px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #0a1020;
-  color: var(--muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-
-.role-seat.is-used {
-  border-color: #5a4725;
-  color: var(--gold);
-}
-
-.role-row__state {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.role-row__state b {
-  margin-right: 4px;
-  color: #cdd6ec;
-  font-weight: 600;
-}
-
 .dash-dock {
   position: fixed;
   bottom: max(12px, env(safe-area-inset-bottom));
   left: 50%;
   z-index: 90;
   display: grid;
-  grid-template-columns: 1.15fr 1fr 0.8fr;
+  grid-template-columns: 1.1fr 0.9fr;
   gap: 7px;
   width: min(calc(100% - 24px), 728px);
   transform: translateX(-50%);
@@ -835,72 +809,8 @@ optgroup {
   font-weight: 600;
 }
 
-.dash-dock .dash-dock__peek {
-  border-color: var(--gold);
-  background: var(--gold);
-  color: var(--gold-deep);
-  font-weight: 800;
-}
-
 .dash-dock__count {
   color: var(--gold);
-  font-variant-numeric: tabular-nums;
-}
-
-.peek-section {
-  margin: 18px 0 6px;
-  color: var(--gold);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-}
-
-.peek-role-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.peek-role {
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel-2);
-}
-
-.peek-role__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.peek-role__name {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.peek-role__kind {
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-}
-
-.peek-role__seats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.peek-role__seat {
-  min-width: 44px;
-  padding: 7px 10px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: #0a1020;
-  color: var(--text);
-  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1132,50 +1042,6 @@ optgroup {
   color: #f0b4ad;
 }
 
-.sheet-facts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 14px 0 0;
-}
-
-.sheet-facts > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed var(--line);
-  font-size: 12px;
-}
-
-.sheet-facts dt {
-  color: var(--muted);
-}
-
-.sheet-facts dd {
-  margin: 0;
-  font-weight: 600;
-  text-align: right;
-}
-
-.holder {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.holder__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.holder__head h3 {
-  font-size: 14px;
-}
-
 .used-toggle {
   padding: 8px 11px;
   border: 1px solid var(--line);
@@ -1190,6 +1056,24 @@ optgroup {
   background: var(--gold);
   color: var(--gold-deep);
   font-weight: 700;
+}
+
+.skill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.skill-action {
+  padding: 8px 14px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: #241b0d;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .field {
@@ -1292,6 +1176,32 @@ optgroup {
   background: var(--panel-2);
 }
 
+.log-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.log-tab {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-tab.is-on {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--gold-deep);
+  font-weight: 700;
+}
+
 .log-list {
   display: flex;
   flex-direction: column;
@@ -1320,9 +1230,35 @@ optgroup {
   line-height: 1.6;
 }
 
+.log-entry__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.log-entry__phase {
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+}
+
 .log-entry__kind {
   color: var(--gold);
   font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.log-entry--phase {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.log-entry__marker {
+  color: var(--muted);
+  font-size: 10px;
   letter-spacing: 0.12em;
 }
 
