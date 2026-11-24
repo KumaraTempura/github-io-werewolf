@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { getRole, presetBoardsById } from '../data/catalog'
-import type { ActiveGame, Setup } from '../game/state'
+import {
+  TABLE_STATES,
+  USED_FLAGS,
+  type ActiveGame,
+  type Setup,
+  type TableStateId,
+  type UsedFlagId,
+} from '../game/state'
 import RoleOptions from './RoleOptions'
 
 interface DashboardScreenProps {
@@ -8,6 +15,8 @@ interface DashboardScreenProps {
   onToggleOut: (seat: number) => void
   onSetRole: (seat: number, roleId: string | null) => void
   onSetCopiedTarget: (seat: number, target: number | null) => void
+  onToggleUsedFlag: (seat: number, flag: UsedFlagId) => void
+  onToggleTableState: (seat: number, tableState: TableStateId) => void
   onReset: () => void
 }
 
@@ -16,6 +25,8 @@ export default function DashboardScreen({
   onToggleOut,
   onSetRole,
   onSetCopiedTarget,
+  onToggleUsedFlag,
+  onToggleTableState,
   onReset,
 }: DashboardScreenProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
@@ -76,6 +87,33 @@ export default function DashboardScreen({
                 : getRole(
                     game.seats[seat.copiedTarget - 1]?.roleId ?? '',
                   )
+            const tags = [
+              ...USED_FLAGS.filter((flag) => seat.usedFlags[flag.id]).map(
+                (flag) => ({
+                  key: flag.id,
+                  label: flag.label,
+                  className: 'tag--used',
+                }),
+              ),
+              ...TABLE_STATES.filter(
+                (tableState) => seat.tableStates[tableState.id],
+              ).map((tableState) => ({
+                key: tableState.id,
+                label: tableState.label,
+                className: 'tag--state',
+              })),
+              ...(seat.copiedTarget === null
+                ? []
+                : [
+                    {
+                      key: 'copied',
+                      label: `模仿 ${seat.copiedTarget} 號 · ${
+                        copiedRole?.name ?? '未指定'
+                      }`,
+                      className: 'tag--copied',
+                    },
+                  ]),
+            ]
             return (
               <article
                 className={`game-seat${seat.out ? ' is-out' : ''}`}
@@ -99,12 +137,13 @@ export default function DashboardScreen({
                   </span>
                   <span className="game-seat__role">{role?.name ?? '—'}</span>
                   <span className="game-seat__camp">{role?.camp ?? '—'}</span>
-                  {seat.copiedTarget !== null ? (
+                  {tags.length > 0 ? (
                     <span className="game-seat__tags">
-                      <i className="tag--copied">
-                        模仿 {seat.copiedTarget} 號 ·{' '}
-                        {copiedRole?.name ?? '未指定'}
-                      </i>
+                      {tags.map((tag) => (
+                        <i className={tag.className} key={tag.key}>
+                          {tag.label}
+                        </i>
+                      ))}
                     </span>
                   ) : null}
                   {seat.out ? (
@@ -132,6 +171,8 @@ export default function DashboardScreen({
           seatNumber={openSeatNumber}
           onSetRole={onSetRole}
           onSetCopiedTarget={onSetCopiedTarget}
+          onToggleUsedFlag={onToggleUsedFlag}
+          onToggleTableState={onToggleTableState}
           onClose={() => setOpenSeatNumber(null)}
         />
       ) : null}
@@ -154,6 +195,8 @@ interface SeatSheetProps {
   seatNumber: number
   onSetRole: (seat: number, roleId: string | null) => void
   onSetCopiedTarget: (seat: number, target: number | null) => void
+  onToggleUsedFlag: (seat: number, flag: UsedFlagId) => void
+  onToggleTableState: (seat: number, tableState: TableStateId) => void
   onClose: () => void
 }
 
@@ -162,6 +205,8 @@ function SeatSheet({
   seatNumber,
   onSetRole,
   onSetCopiedTarget,
+  onToggleUsedFlag,
+  onToggleTableState,
   onClose,
 }: SeatSheetProps) {
   const seat = game.seats[seatNumber - 1]
@@ -241,9 +286,66 @@ function SeatSheet({
               </option>
             ))}
           </select>
+
+          <h3 className="field-label field-label--spaced">已用標記</h3>
+          <CheckChipGroup
+            legend="已用標記"
+            label={`座位 ${seatNumber}`}
+            options={USED_FLAGS}
+            checked={seat.usedFlags}
+            onToggle={(flag) => onToggleUsedFlag(seatNumber, flag)}
+          />
+
+          <h3 className="field-label field-label--spaced">場上狀態</h3>
+          <CheckChipGroup
+            legend="場上狀態"
+            label={`座位 ${seatNumber}`}
+            options={TABLE_STATES}
+            checked={seat.tableStates}
+            onToggle={(tableState) =>
+              onToggleTableState(seatNumber, tableState)
+            }
+          />
         </div>
       </section>
     </>
+  )
+}
+
+interface CheckOption<T extends string> {
+  id: T
+  label: string
+}
+
+interface CheckChipGroupProps<T extends string> {
+  legend: string
+  label: string
+  options: readonly CheckOption<T>[]
+  checked: Record<T, boolean>
+  onToggle: (id: T) => void
+}
+
+function CheckChipGroup<T extends string>({
+  legend,
+  label,
+  options,
+  checked,
+  onToggle,
+}: CheckChipGroupProps<T>) {
+  return (
+    <div className="check-grid" role="group" aria-label={legend}>
+      {options.map((option) => (
+        <label className="check-chip" key={option.id}>
+          <input
+            type="checkbox"
+            aria-label={`${label} ${option.label}`}
+            checked={checked[option.id]}
+            onChange={() => onToggle(option.id)}
+          />
+          <span>{option.label}</span>
+        </label>
+      ))}
+    </div>
   )
 }
 

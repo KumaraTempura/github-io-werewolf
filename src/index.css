@@ -812,6 +812,11 @@ optgroup {
   color: var(--gold);
 }
 
+.game-seat__tags .tag--state {
+  border-color: #3f5d55;
+  color: #9fd6c4;
+}
+
 .game-seat__tags .tag--copied {
   border-color: #3a4a6e;
   color: #a9bdf0;
@@ -1095,6 +1100,37 @@ optgroup {
 .reason-chip:hover {
   border-color: #6a3430;
   color: #f0b4ad;
+}
+
+.check-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.check-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0a1020;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.check-chip:has(input:checked) {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--gold-deep);
+  font-weight: 700;
+}
+
+.check-chip input {
+  margin: 0;
+  accent-color: var(--gold-deep);
 }
 
 .used-toggle {

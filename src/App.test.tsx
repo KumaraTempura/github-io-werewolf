@@ -16,6 +16,10 @@ const standardAssignments = [
   'villager',
 ]
 
+const usedFlagLabels = ['已用', '解藥已用', '毒藥已用']
+const tableStateLabels = ['警長', '禁言', '魅惑', '綁定', '攝夢', '保護']
+const seatTagLabels = [...usedFlagLabels, ...tableStateLabels]
+
 function setup() {
   return render(<App />)
 }
@@ -346,6 +350,123 @@ describe('App', () => {
     expect(within(seatCard(1)).queryByText(/模仿/)).not.toBeInTheDocument()
   })
 
+  it('shows nine independent used-flag and table-state checkboxes in the seat sheet', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+
+    const checkboxes = within(sheet).getAllByRole('checkbox')
+    expect(checkboxes).toHaveLength(seatTagLabels.length)
+    for (const label of seatTagLabels) {
+      expect(
+        within(sheet).getByRole('checkbox', { name: `座位 1 ${label}` }),
+      ).not.toBeChecked()
+    }
+  })
+
+  it('toggles all nine used flags and table states into live card tags', () => {
+    startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 2 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 2 詳情' })
+
+    for (const label of seatTagLabels) {
+      const checkbox = within(sheet).getByRole('checkbox', {
+        name: `座位 2 ${label}`,
+      })
+      fireEvent.click(checkbox)
+
+      expect(checkbox).toBeChecked()
+      expect(within(seatCard(2)).getByText(label)).toBeInTheDocument()
+    }
+
+    for (const label of seatTagLabels) {
+      const checkbox = within(sheet).getByRole('checkbox', {
+        name: `座位 2 ${label}`,
+      })
+      fireEvent.click(checkbox)
+
+      expect(checkbox).not.toBeChecked()
+      expect(within(seatCard(2)).queryByText(label)).not.toBeInTheDocument()
+    }
+  })
+
+  it('keeps used flags and table states independent of out and other seats', () => {
+    const { container } = startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 出局' }))
+    expect(aliveCount(container)).toBe('8 / 9 在場')
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    fireEvent.click(
+      within(sheet).getByRole('checkbox', { name: '座位 1 已用' }),
+    )
+    fireEvent.click(
+      within(sheet).getByRole('checkbox', { name: '座位 1 警長' }),
+    )
+
+    expect(aliveCount(container)).toBe('8 / 9 在場')
+    expect(
+      screen.getByRole('button', { name: '座位 1 出局' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(within(seatCard(1)).getByText('已出局')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('已用')).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('警長')).toBeInTheDocument()
+    expect(within(seatCard(2)).queryByText('已用')).not.toBeInTheDocument()
+    expect(within(seatCard(2)).queryByText('警長')).not.toBeInTheDocument()
+
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 出局' }))
+
+    expect(aliveCount(container)).toBe('9 / 9 在場')
+    expect(within(seatCard(1)).getByText('已用')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    expect(
+      within(screen.getByRole('dialog', { name: '座位 1 詳情' })).getByRole(
+        'checkbox',
+        { name: '座位 1 已用' },
+      ),
+    ).toBeChecked()
+  })
+
+  it('persists used flags and table states across closing the sheet and a reload', () => {
+    const first = startPhysicalGame()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 3 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 3 詳情' })
+    fireEvent.click(
+      within(sheet).getByRole('checkbox', { name: '座位 3 解藥已用' }),
+    )
+    fireEvent.click(
+      within(sheet).getByRole('checkbox', { name: '座位 3 魅惑' }),
+    )
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
+
+    expect(within(seatCard(3)).getByText('解藥已用')).toBeInTheDocument()
+    expect(within(seatCard(3)).getByText('魅惑')).toBeInTheDocument()
+
+    first.unmount()
+    setup()
+
+    expect(within(seatCard(3)).getByText('解藥已用')).toBeInTheDocument()
+    expect(within(seatCard(3)).getByText('魅惑')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 3 詳情' }))
+    const restored = screen.getByRole('dialog', { name: '座位 3 詳情' })
+    expect(
+      within(restored).getByRole('checkbox', { name: '座位 3 解藥已用' }),
+    ).toBeChecked()
+    expect(
+      within(restored).getByRole('checkbox', { name: '座位 3 魅惑' }),
+    ).toBeChecked()
+    expect(
+      within(restored).getByRole('checkbox', { name: '座位 3 已用' }),
+    ).not.toBeChecked()
+  })
+
   it('marks a seat out and back in with a visible marker and alive count', () => {
     const { container } = startPhysicalGame()
 
@@ -371,10 +492,17 @@ describe('App', () => {
   it('resets to the default standard 333 setup only after confirmation', async () => {
     startPhysicalGame()
 
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    const sheet = screen.getByRole('dialog', { name: '座位 1 詳情' })
+    fireEvent.click(
+      within(sheet).getByRole('checkbox', { name: '座位 1 已用' }),
+    )
+    fireEvent.click(within(sheet).getByRole('button', { name: '關閉' }))
+
     fireEvent.click(screen.getByRole('button', { name: '重設這一局' }))
     const dialog = screen.getByRole('alertdialog', { name: '重設這一局' })
     fireEvent.click(within(dialog).getByRole('button', { name: '取消' }))
-    expect(screen.getByRole('heading', { name: '標準 333' })).toBeInTheDocument()
+    expect(within(seatCard(1)).getByText('已用')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '重設這一局' }))
     fireEvent.click(
@@ -389,6 +517,16 @@ describe('App', () => {
     ).toBeInTheDocument()
     expect(screen.getByLabelText('板子')).toHaveValue('standard-333')
     expect(screen.getByRole('button', { name: '發牌（數位）' })).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('button', { name: '實體發牌' }))
+    fireEvent.click(screen.getByRole('button', { name: '開始遊戲（實體）' }))
+    fireEvent.click(screen.getByRole('button', { name: '座位 1 詳情' }))
+    expect(
+      within(screen.getByRole('dialog', { name: '座位 1 詳情' })).getByRole(
+        'checkbox',
+        { name: '座位 1 已用' },
+      ),
+    ).not.toBeChecked()
   })
 
   it('restores the draft after a reload during setup', () => {

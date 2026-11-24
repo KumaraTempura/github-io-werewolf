@@ -41,6 +41,12 @@ export default function App() {
         onSetCopiedTarget={(seat, target) =>
           dispatch({ type: 'game/setCopiedTarget', seat, target })
         }
+        onToggleUsedFlag={(seat, flag) =>
+          dispatch({ type: 'game/toggleUsedFlag', seat, flag })
+        }
+        onToggleTableState={(seat, tableState) =>
+          dispatch({ type: 'game/toggleTableState', seat, tableState })
+        }
         onReset={() => {
           dispatch({ type: 'game/reset' })
           setScreen('setup')
