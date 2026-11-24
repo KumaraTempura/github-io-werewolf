@@ -601,10 +601,6 @@ optgroup {
   letter-spacing: 0.04em;
 }
 
-.game {
-  padding-bottom: 140px;
-}
-
 .game-head {
   display: flex;
   align-items: flex-end;
@@ -730,6 +726,12 @@ optgroup {
   color: #cdd6ec;
   font-size: 13px;
   font-weight: 700;
+}
+
+.game-seat__camp {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .game-seat.is-out {

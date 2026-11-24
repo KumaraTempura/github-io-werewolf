@@ -1,6 +1,6 @@
 # Werewolf Judge Notebook
 
-A single-device, judge-operated notebook for recording Werewolf (狼人殺) games. It deals roles digitally when no physical cards exist and records what happened without enforcing the rules.
+A single-device, judge-operated notebook for recording Werewolf (狼人殺) games. It deals roles digitally when no physical cards exist and records seat roles and marks without enforcing the rules.
 
 ## Language
 
@@ -29,61 +29,49 @@ Roles are dealt with physical cards; the judge enters each seat's role manually.
 _Avoid_: Manual mode
 
 **Draft**:
-The editable pre-game state: board, role assignments, and reveal progress. Autosaved, but not yet part of the event log.
+The editable pre-game state: board, role assignments, and reveal progress.
 _Avoid_: Lobby, pre-game
 
 **Start**:
-The judge action that commits the draft as one event with the final assignments and begins the game.
+The judge action that commits the draft and begins the game. Seat roles remain editable after Start.
 _Avoid_: Begin, launch
 
-**Cycle**:
-One night and the following daytime, displayed as 第 N 天 and used as the event log's tab unit.
-_Avoid_: Day, round, day-night cycle
-
-**Night**:
-The first phase of a cycle (夜晚).
-_Avoid_: Evening, night phase
-
-**Daytime**:
-The second phase of a cycle (白天), following its night.
-_Avoid_: Day
-
-**Phase**:
-One of the two parts of a cycle: night or daytime.
-_Avoid_: Stage, step, period
-
-**Reveal**:
-The judge-held display of a seat's role or peek result to that player, hidden again after they have seen it.
-_Avoid_: Hand-over, pass-and-play
+**Camp** (陣營):
+One of 狼人陣營, 好人陣營/神職, 好人陣營/平民, or 特殊陣營. Camps group roles; they do not determine good/bad reveals.
+_Avoid_: Team, side, alignment
 
 **Role catalog** (角色目錄):
-The data-driven definition of every role: name, camp, ability, tracked state, peek kind, and night order.
+The list of role names and camps used to assign seat roles. The notebook does not model role abilities.
 _Avoid_: Role list, roles
 
 **Notebook** (筆記):
-The append-only record of judge-entered events. It does not validate or enforce game rules.
+The judge's record of the active game: each seat's role, out status, copied target, used flags, and table states. It does not validate or enforce game rules.
 _Avoid_: Engine, simulator
 
-**Event** (事件):
-One judge-recorded action or change: deal, phase advance, ability use, peek, elimination, revive, table-state change, or note. Undo removes the last event.
-_Avoid_: Action, log entry, step
-
-**Table state** (場上狀態):
-A judge-set condition on a seat: 警長 badge, 禁言, 魅惑, 綁定, 攝夢, or 中毒/負傷.
-_Avoid_: Status, effect, buff
-
 **Out** (出局):
-A player removed from the game, with a recorded reason.
+A judge-set flag marking a player as removed from the game. It carries no reason and has no separate revive action.
 _Avoid_: Dead, eliminated
 
-**Revive** (復活):
-A judge-recorded return of an out player to play, usually from a night-kill prevention ability such as the witch's antidote or 法老之蛇. It is an event, not a role-state flag.
-_Avoid_: Resurrect, save
+**Copied target** (模仿對象):
+The seat a player copied, marked by the judge and shown on that player's seat. There is no separate copied-role field.
+_Avoid_: Copied role, mimic target
 
-**Peek** (查驗):
-A private, role-aware reveal to the player using an inspection ability: exact role, camp, teammate number, or last-exile camp.
-_Avoid_: Inspect, check, view role
-
-**Used** (已使用):
-A manual judge-set flag that a role's ability has been used. It persists across cycles; advancing a phase does not reset it. The app does not infer it.
+**Used flag** (已用標記):
+A judge-set checkbox on a seat recording that an ability or potion has been used: 已用, 解藥已用, or 毒藥已用. It persists until reset and has no automatic effect.
 _Avoid_: Spent, consumed
+
+**Table state** (場上狀態):
+A judge-set condition on a seat: 警長, 禁言, 魅惑, 綁定, 攝夢, or 保護. It has no automatic effect.
+_Avoid_: Status, effect, buff
+
+**Reveal**:
+The judge-held display of a seat's role or a judge-chosen good/bad result, hidden again after the player has seen it. Reveals are not recorded.
+_Avoid_: Hand-over, pass-and-play
+
+**Good/bad** (好人／狼人):
+The judge-chosen 好人 or 狼人 result shown in a reveal. The notebook does not derive it from the seat's role or camp.
+_Avoid_: Camp result, alignment
+
+**Reset**:
+The judge action that wipes the active game and returns to the default setup page.
+_Avoid_: Clear, new game

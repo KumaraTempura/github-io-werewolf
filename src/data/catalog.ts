@@ -555,64 +555,12 @@ export function getPresetBoard(presetId: string): PresetBoard | undefined {
   return presetBoardsById.get(presetId)
 }
 
-const MIMIC_ROLE_FIELD_KEY = 'mimickedRole'
-
-export function copiedRoleOf(
-  role: Role | undefined,
-  state: TrackedState | undefined,
-): Role | undefined {
-  if (!role || !state) {
-    return undefined
+export function expandPreset(board: PresetBoard): string[] {
+  const assignments: string[] = []
+  for (const entry of board.roles) {
+    for (let index = 0; index < entry.count; index += 1) {
+      assignments.push(entry.roleId)
+    }
   }
-  const ownsMimic = role.trackedFields.some(
-    (field) => field.key === MIMIC_ROLE_FIELD_KEY && field.type === 'roleId',
-  )
-  if (!ownsMimic) {
-    return undefined
-  }
-  const value = state[MIMIC_ROLE_FIELD_KEY]
-  return typeof value === 'string' ? rolesById.get(value) : undefined
-}
-
-export function effectiveTrackedFields(
-  role: Role | undefined,
-  state: TrackedState | undefined,
-): readonly TrackedField[] {
-  if (!role) {
-    return []
-  }
-  const copied = copiedRoleOf(role, state)
-  if (!copied) {
-    return role.trackedFields
-  }
-  const ownKeys = new Set(role.trackedFields.map((field) => field.key))
-  return [
-    ...role.trackedFields,
-    ...copied.trackedFields.filter((field) => !ownKeys.has(field.key)),
-  ]
-}
-
-export function findEffectiveTrackedField(
-  role: Role | undefined,
-  state: TrackedState | undefined,
-  key: string,
-): TrackedField | undefined {
-  return effectiveTrackedFields(role, state).find((field) => field.key === key)
-}
-
-function cloneInitialValue(value: TrackedFieldValue): TrackedFieldValue {
-  if (!Array.isArray(value)) {
-    return value
-  }
-  return value.map((entry) =>
-    Array.isArray(entry) ? [...entry] : entry,
-  ) as TrackedFieldValue
-}
-
-export function initialTrackedState(role: Role): TrackedState {
-  const state: TrackedState = {}
-  for (const field of role.trackedFields) {
-    state[field.key] = cloneInitialValue(field.initial)
-  }
-  return state
+  return assignments
 }

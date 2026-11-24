@@ -1,29 +1,27 @@
+import { presetBoardsById, rolesById } from '../data/catalog'
 import {
-  presetBoardsById,
-  rolesById,
-  type TrackedFieldValue,
-} from '../data/catalog'
-import {
-  appendEvent,
+  TABLE_STATES,
+  USED_FLAGS,
   createNotebook,
   isSeat,
+  type ActiveGame,
   type DraftState,
-  type EliminationReason,
-  type GameEvent,
   type GameMode,
-  type InGameEvent,
   type NotebookState,
-  type PeekCamp,
-  type PeekResult,
-  type RoleStateUpdate,
+  type SeatRecord,
   type Setup,
-  type StartEvent,
-  type TableStateId,
+  type TableStateMap,
+  type UsedFlagState,
 } from './state'
 
 export const NOTEBOOK_STORAGE_KEY = 'werewolf-judge-notebook:v1'
 
-const STORAGE_VERSION = 2
+const STORAGE_VERSION = 3
+
+const LEGACY_VERSIONS = new Set([1, 2])
+
+const USED_FLAG_IDS = USED_FLAGS.map((flag) => flag.id)
+const TABLE_STATE_IDS = TABLE_STATES.map((tableState) => tableState.id)
 
 export interface KeyValueStorage {
   getItem(key: string): string | null
@@ -34,7 +32,7 @@ export interface KeyValueStorage {
 interface StoredNotebook {
   version: number
   draft: DraftState
-  events: GameEvent[]
+  game: ActiveGame | null
 }
 
 type UnknownRecord = Record<string, unknown>
@@ -53,10 +51,6 @@ function isKnownBoardId(value: unknown): value is string {
 
 function isGameMode(value: unknown): value is GameMode {
   return value === 'digital' || value === 'physical'
-}
-
-function isPeekCamp(value: unknown): value is PeekCamp {
-  return value === 'good' || value === 'wolf'
 }
 
 function parseDraft(raw: unknown): DraftState | null {
@@ -80,7 +74,10 @@ function parseDraft(raw: unknown): DraftState | null {
   if (!assignments.every((roleId) => roleId === null || isKnownRoleId(roleId))) {
     return null
   }
-  if (!Array.isArray(revealedSeats) || !revealedSeats.every((seat) => isSeat(seat) && seat <= count)) {
+  if (
+    !Array.isArray(revealedSeats) ||
+    !revealedSeats.every((seat) => isSeat(seat) && seat <= count)
+  ) {
     return null
   }
   if (new Set(revealedSeats).size !== revealedSeats.length) {
@@ -125,169 +122,82 @@ function parseSetup(raw: unknown): Setup | null {
   }
 }
 
-function parseStartEvent(raw: unknown): StartEvent | null {
-  if (!isRecord(raw) || raw.type !== 'start') {
+function parseBooleanRecord<K extends string>(
+  raw: unknown,
+  keys: readonly K[],
+): Record<K, boolean> | null {
+  if (!isRecord(raw)) {
+    return null
+  }
+  const record = {} as Record<K, boolean>
+  for (const key of keys) {
+    if (typeof raw[key] !== 'boolean') {
+      return null
+    }
+    record[key] = raw[key] as boolean
+  }
+  return record
+}
+
+function parseUsedFlags(raw: unknown): UsedFlagState | null {
+  return parseBooleanRecord(raw, USED_FLAG_IDS)
+}
+
+function parseTableStates(raw: unknown): TableStateMap | null {
+  return parseBooleanRecord(raw, TABLE_STATE_IDS)
+}
+
+function parseSeat(raw: unknown, playerCount: number): SeatRecord | null {
+  if (!isRecord(raw)) {
+    return null
+  }
+  const { roleId, out, copiedTarget, usedFlags, tableStates } = raw
+  if (roleId !== null && !isKnownRoleId(roleId)) {
+    return null
+  }
+  if (typeof out !== 'boolean') {
+    return null
+  }
+  if (
+    copiedTarget !== null &&
+    !(isSeat(copiedTarget) && copiedTarget <= playerCount)
+  ) {
+    return null
+  }
+  const parsedUsedFlags = parseUsedFlags(usedFlags)
+  const parsedTableStates = parseTableStates(tableStates)
+  if (!parsedUsedFlags || !parsedTableStates) {
+    return null
+  }
+  return {
+    roleId,
+    out,
+    copiedTarget,
+    usedFlags: parsedUsedFlags,
+    tableStates: parsedTableStates,
+  }
+}
+
+function parseGame(raw: unknown): ActiveGame | null {
+  if (!isRecord(raw)) {
     return null
   }
   const setup = parseSetup(raw.setup)
-  return setup ? { type: 'start', setup } : null
-}
-
-function isTrackedValueShape(value: unknown): value is TrackedFieldValue {
-  if (value === null) {
-    return true
-  }
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'boolean'
-  ) {
-    return true
-  }
-  if (!Array.isArray(value)) {
-    return false
-  }
-  return value.every(
-    (entry) =>
-      typeof entry === 'number' ||
-      (Array.isArray(entry) &&
-        entry.length === 2 &&
-        entry.every((item) => typeof item === 'number')),
-  )
-}
-
-function parsePeekResult(raw: unknown): PeekResult | null {
-  if (!isRecord(raw)) {
+  if (!setup || !Array.isArray(raw.seats)) {
     return null
   }
-  switch (raw.kind) {
-    case 'exactRole':
-      return isKnownRoleId(raw.roleId)
-        ? { kind: 'exactRole', roleId: raw.roleId }
-        : null
-    case 'goodOrWolf':
-      return isPeekCamp(raw.camp) ? { kind: 'goodOrWolf', camp: raw.camp } : null
-    case 'lastExileCamp':
-      return isPeekCamp(raw.camp) ? { kind: 'lastExileCamp', camp: raw.camp } : null
-    case 'teammateNumber':
-      return Array.isArray(raw.seats) && raw.seats.every(isSeat)
-        ? { kind: 'teammateNumber', seats: [...raw.seats] }
-        : null
-    default:
-      return null
-  }
-}
-
-function parseRoleStateUpdates(raw: unknown): RoleStateUpdate[] | null {
-  if (!Array.isArray(raw)) {
+  if (raw.seats.length !== setup.playerCount) {
     return null
   }
-  const updates: RoleStateUpdate[] = []
-  for (const entry of raw) {
-    if (
-      !isRecord(entry) ||
-      typeof entry.field !== 'string' ||
-      !isTrackedValueShape(entry.value)
-    ) {
+  const seats: SeatRecord[] = []
+  for (const rawSeat of raw.seats) {
+    const seat = parseSeat(rawSeat, setup.playerCount)
+    if (!seat) {
       return null
     }
-    updates.push({ field: entry.field, value: entry.value })
+    seats.push(seat)
   }
-  return updates
-}
-
-function parseInGameEvent(raw: unknown): InGameEvent | null {
-  if (!isRecord(raw)) {
-    return null
-  }
-  switch (raw.type) {
-    case 'used':
-      return isSeat(raw.seat) && typeof raw.used === 'boolean'
-        ? { type: 'used', seat: raw.seat, used: raw.used }
-        : null
-    case 'roleState':
-      return isSeat(raw.seat) &&
-        typeof raw.field === 'string' &&
-        isTrackedValueShape(raw.value)
-        ? { type: 'roleState', seat: raw.seat, field: raw.field, value: raw.value }
-        : null
-    case 'tableState':
-      return typeof raw.state === 'string' &&
-        Array.isArray(raw.seats) &&
-        raw.seats.every(isSeat)
-        ? {
-            type: 'tableState',
-            state: raw.state as TableStateId,
-            seats: [...raw.seats],
-          }
-        : null
-    case 'elimination':
-      return isSeat(raw.seat) && typeof raw.reason === 'string'
-        ? {
-            type: 'elimination',
-            seat: raw.seat,
-            reason: raw.reason as EliminationReason,
-          }
-        : null
-    case 'note':
-      return (raw.seat === null || isSeat(raw.seat)) && typeof raw.text === 'string'
-        ? { type: 'note', seat: raw.seat, text: raw.text }
-        : null
-    case 'phase':
-      return Number.isInteger(raw.cycle) &&
-        (raw.cycle as number) >= 1 &&
-        (raw.phase === 'night' || raw.phase === 'daytime')
-        ? { type: 'phase', cycle: raw.cycle as number, phase: raw.phase }
-        : null
-    case 'revive':
-      return isSeat(raw.seat) ? { type: 'revive', seat: raw.seat } : null
-    case 'peek': {
-      const result = parsePeekResult(raw.result)
-      if (!isSeat(raw.inspectorSeat) || !isSeat(raw.targetSeat) || !result) {
-        return null
-      }
-      const updates =
-        raw.updates === undefined ? [] : parseRoleStateUpdates(raw.updates)
-      if (updates === null) {
-        return null
-      }
-      const base = {
-        type: 'peek' as const,
-        inspectorSeat: raw.inspectorSeat,
-        targetSeat: raw.targetSeat,
-        result,
-        ...(updates.length > 0 ? { updates } : {}),
-      }
-      if (raw.targetSeats === undefined) {
-        return base
-      }
-      if (
-        !Array.isArray(raw.targetSeats) ||
-        raw.targetSeats.length === 0 ||
-        !raw.targetSeats.every(isSeat) ||
-        new Set(raw.targetSeats).size !== raw.targetSeats.length ||
-        raw.targetSeats[0] !== raw.targetSeat
-      ) {
-        return null
-      }
-      return {
-        ...base,
-        targetSeats: [...raw.targetSeats],
-      }
-    }
-    default:
-      return null
-  }
-}
-
-function setupMatchesDraft(setup: Setup, draft: DraftState): boolean {
-  return (
-    setup.boardId === draft.boardId &&
-    setup.playerCount === draft.playerCount &&
-    setup.mode === draft.mode &&
-    setup.assignments.length === draft.assignments.length &&
-    setup.assignments.every((roleId, index) => roleId === draft.assignments[index])
-  )
+  return { setup, seats }
 }
 
 export function parseNotebook(raw: unknown): NotebookState | null {
@@ -295,29 +205,22 @@ export function parseNotebook(raw: unknown): NotebookState | null {
     return null
   }
   const draft = parseDraft(raw.draft)
-  if (!draft || !Array.isArray(raw.events)) {
+  if (!draft) {
     return null
   }
-  if (raw.events.length === 0) {
-    return { draft, events: [] }
-  }
-  const start = parseStartEvent(raw.events[0])
-  if (!start || !setupMatchesDraft(start.setup, draft)) {
+  const game = raw.game === null ? null : parseGame(raw.game)
+  if (raw.game !== null && !game) {
     return null
   }
-  let state: NotebookState = { draft, events: [start] }
-  for (const rawEvent of raw.events.slice(1)) {
-    const event = parseInGameEvent(rawEvent)
-    if (!event) {
-      return null
-    }
-    const next = appendEvent(state, event)
-    if (next.events.length !== state.events.length + 1) {
-      return null
-    }
-    state = next
-  }
-  return state
+  return { draft, game }
+}
+
+function isLegacySave(raw: unknown): boolean {
+  return (
+    isRecord(raw) &&
+    typeof raw.version === 'number' &&
+    LEGACY_VERSIONS.has(raw.version)
+  )
 }
 
 export interface LoadedNotebook {
@@ -334,25 +237,17 @@ export function loadNotebookWithStatus(
       return { state: createNotebook(), legacyDiscarded: false }
     }
     const parsed: unknown = JSON.parse(raw)
+    const state = parseNotebook(parsed)
+    if (state) {
+      return { state, legacyDiscarded: false }
+    }
     return {
-      state: parseNotebook(parsed) ?? createNotebook(),
-      legacyDiscarded: isRecord(parsed) && parsed.version === 1,
+      state: createNotebook(),
+      legacyDiscarded: isLegacySave(parsed),
     }
   } catch {
     return { state: createNotebook(), legacyDiscarded: false }
   }
-}
-
-export function isLegacyNotebook(
-  storage: KeyValueStorage = window.localStorage,
-): boolean {
-  return loadNotebookWithStatus(storage).legacyDiscarded
-}
-
-export function loadNotebook(
-  storage: KeyValueStorage = window.localStorage,
-): NotebookState {
-  return loadNotebookWithStatus(storage).state
 }
 
 export function saveNotebook(
@@ -362,22 +257,12 @@ export function saveNotebook(
   const stored: StoredNotebook = {
     version: STORAGE_VERSION,
     draft: state.draft,
-    events: state.events,
+    game: state.game,
   }
   try {
     storage.setItem(NOTEBOOK_STORAGE_KEY, JSON.stringify(stored))
     return true
   } catch {
     return false
-  }
-}
-
-export function clearStoredNotebook(
-  storage: KeyValueStorage = window.localStorage,
-): void {
-  try {
-    storage.removeItem(NOTEBOOK_STORAGE_KEY)
-  } catch {
-    return
   }
 }

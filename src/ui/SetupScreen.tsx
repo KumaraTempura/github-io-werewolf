@@ -1,4 +1,4 @@
-import { presetBoardsById } from '../data/catalog'
+import { expandPreset, presetBoardsById } from '../data/catalog'
 import type { DraftState, GameMode } from '../game/state'
 import type { NotebookDispatch } from '../game/useNotebook'
 import {
@@ -7,7 +7,6 @@ import {
   MAX_PLAYERS,
   MIN_PLAYERS,
   assignmentsComplete,
-  expandPreset,
   presetSections,
   roleCounts,
   rolesForCamp,
@@ -130,7 +129,7 @@ export default function SetupScreen({
 
       {legacyDiscarded ? (
         <p className="legacy-notice" role="status">
-          舊局紀錄已因日夜分類清除。
+          舊版事件紀錄已清除，請重新設定這一局。
         </p>
       ) : null}
 

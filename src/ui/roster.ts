@@ -18,16 +18,6 @@ export const CAMP_GROUPS: readonly { key: CampKey; label: string }[] = [
   { key: 'special', label: '特殊陣營' },
 ]
 
-export function expandPreset(board: PresetBoard): string[] {
-  const assignments: string[] = []
-  for (const entry of board.roles) {
-    for (let index = 0; index < entry.count; index += 1) {
-      assignments.push(entry.roleId)
-    }
-  }
-  return assignments
-}
-
 export function assignmentsComplete(
   assignments: readonly (string | null)[],
   playerCount: number,
