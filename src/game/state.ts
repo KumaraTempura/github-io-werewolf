@@ -1,4 +1,5 @@
 import {
+  findEffectiveTrackedField,
   getRole,
   initialTrackedState,
   presetBoardsById,
@@ -454,8 +455,11 @@ function normalizeEvent(event: InGameEvent, derived: DerivedGame): InGameEvent |
       if (!isSeatInGame(event.seat, playerCount)) {
         return null
       }
-      const roleId = derived.seatRoles[event.seat]
-      const field = getRole(roleId)?.trackedFields.find((entry) => entry.key === event.field)
+      const field = findEffectiveTrackedField(
+        getRole(derived.seatRoles[event.seat] ?? ''),
+        derived.roleStateBySeat[event.seat],
+        event.field,
+      )
       if (!field || !isValidTrackedValue(field, event.value)) {
         return null
       }
@@ -637,8 +641,10 @@ export function deriveGame(events: readonly GameEvent[]): DerivedGame | null {
         break
       case 'roleState': {
         const roleState = roleStateBySeat[event.seat]
-        const field = getRole(seatRoles[event.seat])?.trackedFields.find(
-          (entry) => entry.key === event.field,
+        const field = findEffectiveTrackedField(
+          getRole(seatRoles[event.seat] ?? ''),
+          roleState,
+          event.field,
         )
         if (roleState && field && isValidTrackedValue(field, event.value)) {
           roleState[event.field] = cloneTrackedValue(event.value)

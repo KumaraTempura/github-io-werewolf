@@ -1,9 +1,11 @@
 import {
+  findEffectiveTrackedField,
   getRole,
   type PeekKind,
   type Role,
   type TrackedField,
   type TrackedFieldValue,
+  type TrackedState,
 } from '../data/catalog'
 import {
   ELIMINATION_REASON_LABELS,
@@ -219,7 +221,11 @@ function seatRoleName(setup: Setup, seat: number): string {
   return roleId ? getRole(roleId)?.name ?? roleId : '—'
 }
 
-export function describeEvent(event: GameEvent, setup: Setup): string {
+export function describeEvent(
+  event: GameEvent,
+  setup: Setup,
+  roleStateBySeat?: Readonly<Record<number, TrackedState>>,
+): string {
   switch (event.type) {
     case 'start':
       return `開始遊戲 · ${
@@ -231,7 +237,11 @@ export function describeEvent(event: GameEvent, setup: Setup): string {
       }`
     case 'roleState': {
       const role = getRole(setup.assignments[event.seat - 1] ?? '')
-      const field = role?.trackedFields.find((entry) => entry.key === event.field)
+      const field = findEffectiveTrackedField(
+        role,
+        roleStateBySeat?.[event.seat],
+        event.field,
+      )
       const label = field?.label ?? event.field
       const value = field
         ? formatTrackedValue(field, event.value)

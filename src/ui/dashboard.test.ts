@@ -232,4 +232,17 @@ describe('describeEvent', () => {
       ),
     ).toBe('預言家查驗 2 號 · 狼人')
   })
+
+  it('labels fields copied from a mimicked role', () => {
+    const assignments = [...SETUP.assignments]
+    assignments[8] = 'awakened-hidden-wolf'
+
+    expect(
+      describeEvent(
+        { type: 'roleState', seat: 9, field: 'dreamTarget', value: 3 },
+        { ...SETUP, assignments },
+        { 9: { mimickedRole: 'dream-weaver', mimicTarget: 2 } },
+      ),
+    ).toBe('9 號 覺醒隱狼 · 本夜夢遊者：3 號')
+  })
 })

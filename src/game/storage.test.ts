@@ -176,6 +176,46 @@ describe('storage', () => {
     })
   })
 
+  it('round-trips fields copied from a mimicked role', () => {
+    const storage = new MemoryStorage()
+    const base = draftState()
+    const assignments = [...base.draft.assignments]
+    assignments[8] = 'awakened-hidden-wolf'
+    const started = startGame({
+      draft: {
+        ...base.draft,
+        mode: 'physical',
+        assignments,
+        revealedSeats: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      },
+      events: [],
+    })
+    if (!started.ok) {
+      throw new Error(started.error)
+    }
+    let state = appendEvent(started.state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'mimickedRole',
+      value: 'dream-weaver',
+    })
+    state = appendEvent(state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'dreamTarget',
+      value: 3,
+    })
+
+    expect(saveNotebook(state, storage)).toBe(true)
+    const loaded = loadNotebook(storage)
+
+    expect(loaded).toEqual(state)
+    expect(deriveGame(loaded.events)?.roleStateBySeat[9]).toMatchObject({
+      mimickedRole: 'dream-weaver',
+      dreamTarget: 3,
+    })
+  })
+
   it('rejects peek updates for a role that does not own the field', () => {
     const storage = new MemoryStorage()
     const state = playingState()

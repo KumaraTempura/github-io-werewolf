@@ -455,6 +455,62 @@ describe('in-game events', () => {
     expect(state.events).toHaveLength(before)
   })
 
+  it('records fields from the role a mimic has copied', () => {
+    let state = started({
+      mode: 'physical',
+      assignments: [...standardAssignments.slice(0, 8), 'awakened-hidden-wolf'],
+    })
+
+    const before = state.events.length
+    state = appendEvent(state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'dreamTarget',
+      value: 3,
+    })
+    expect(state.events).toHaveLength(before)
+
+    state = appendEvent(state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'mimickedRole',
+      value: 'dream-weaver',
+    })
+    state = appendEvent(state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'dreamTarget',
+      value: 3,
+    })
+    state = appendEvent(state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'lastDreamTarget',
+      value: 4,
+    })
+
+    const derived = derivedOf(state)
+    expect(derived.roleStateBySeat[9]).toMatchObject({
+      mimickedRole: 'dream-weaver',
+      dreamTarget: 3,
+      lastDreamTarget: 4,
+    })
+
+    const copiedSeer = appendEvent(state, {
+      type: 'roleState',
+      seat: 9,
+      field: 'mimickedRole',
+      value: 'seer',
+    })
+    const rejected = appendEvent(copiedSeer, {
+      type: 'roleState',
+      seat: 9,
+      field: 'dreamTarget',
+      value: 5,
+    })
+    expect(rejected.events).toHaveLength(copiedSeer.events.length)
+  })
+
   it('records judge-set table states', () => {
     let state = started()
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
+  copiedRoleOf,
+  effectiveTrackedFields,
   getRole,
   presetBoardsById,
   roles,
@@ -248,6 +250,7 @@ export default function DashboardScreen({
         <EventLogSheet
           setup={game.setup}
           history={game.history}
+          roleStateBySeat={game.roleStateBySeat}
           currentCycle={game.currentPhase.cycle}
           onClose={() => setSheet(null)}
         />
@@ -293,6 +296,9 @@ interface SeatSheetProps {
 
 function SeatSheet({ seat, game, dispatch, onPeek, onClose }: SeatSheetProps) {
   const role = getRole(game.seatRoles[seat] ?? '')
+  const roleState = game.roleStateBySeat[seat]
+  const copiedRole = copiedRoleOf(role, roleState)
+  const skillFields = effectiveTrackedFields(role, roleState)
   const out = game.outPlayers.find((player) => player.seat === seat)
   const used = game.usedBySeat[seat] ?? false
   const showSkill = role !== undefined && hasCatalogAbility(role)
@@ -416,12 +422,17 @@ function SeatSheet({ seat, game, dispatch, onPeek, onClose }: SeatSheetProps) {
                 </button>
               ) : null}
             </div>
-            {role.trackedFields.map((field) => (
+            {copiedRole ? (
+              <p className="sheet-note">
+                模仿 {copiedRole.name}：已加入對方技能選項。
+              </p>
+            ) : null}
+            {skillFields.map((field) => (
               <TrackedFieldEditor
                 key={field.key}
                 seat={seat}
                 field={field}
-                value={game.roleStateBySeat[seat]?.[field.key]}
+                value={roleState?.[field.key]}
                 playerCount={game.setup.playerCount}
                 onChange={(value) => updateField(field, value)}
               />
@@ -717,6 +728,7 @@ function TrackedFieldEditor({
 interface EventLogSheetProps {
   setup: Setup
   history: DerivedGame['history']
+  roleStateBySeat: DerivedGame['roleStateBySeat']
   currentCycle: number
   onClose: () => void
 }
@@ -724,6 +736,7 @@ interface EventLogSheetProps {
 function EventLogSheet({
   setup,
   history,
+  roleStateBySeat,
   currentCycle,
   onClose,
 }: EventLogSheetProps) {
@@ -787,7 +800,7 @@ function EventLogSheet({
                   {String(row.number ?? 0).padStart(2, '0')}
                 </span>
                 <span className="log-entry__text">
-                  {describeEvent(row.event, setup)}
+                  {describeEvent(row.event, setup, roleStateBySeat)}
                 </span>
                 <span className="log-entry__meta">
                   <i className="log-entry__phase">

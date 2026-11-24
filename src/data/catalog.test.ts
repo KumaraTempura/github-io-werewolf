@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import catalogJson from './role-catalog.json'
 import {
+  copiedRoleOf,
+  effectiveTrackedFields,
   getPresetBoard,
   getRole,
   initialTrackedState,
@@ -105,6 +107,50 @@ describe('role catalog', () => {
     firstCheckedSeats.push(4)
 
     expect(second.checkedSeats).toEqual([])
+  })
+})
+
+describe('mimicked skills', () => {
+  it('adds every god role field to the awakened hidden wolf', () => {
+    const hiddenWolf = getRole('awakened-hidden-wolf')
+    if (!hiddenWolf) throw new Error('hidden wolf missing from catalog')
+    const ownKeys = new Set(hiddenWolf.trackedFields.map((field) => field.key))
+
+    for (const god of roles.filter((role) => role.campKey === 'god')) {
+      const state = { mimickedRole: god.id }
+
+      expect(copiedRoleOf(hiddenWolf, state)?.id).toBe(god.id)
+      const fieldKeys = new Set(
+        effectiveTrackedFields(hiddenWolf, state).map((field) => field.key),
+      )
+      for (const field of god.trackedFields) {
+        expect(fieldKeys.has(field.key), `${god.id}: ${field.key}`).toBe(true)
+      }
+      expect(fieldKeys.size).toBe(
+        ownKeys.size +
+          god.trackedFields.filter((field) => !ownKeys.has(field.key)).length,
+      )
+    }
+  })
+
+  it('leaves roles without a mimic field unchanged', () => {
+    const villager = getRole('villager')
+    if (!villager) throw new Error('villager missing from catalog')
+    const state = { mimickedRole: 'seer' }
+
+    expect(copiedRoleOf(villager, state)).toBeUndefined()
+    expect(effectiveTrackedFields(villager, state)).toEqual(villager.trackedFields)
+  })
+
+  it('ignores an unknown copied role id', () => {
+    const hiddenWolf = getRole('awakened-hidden-wolf')
+    if (!hiddenWolf) throw new Error('hidden wolf missing from catalog')
+    const state = { mimickedRole: 'no-such-role' }
+
+    expect(copiedRoleOf(hiddenWolf, state)).toBeUndefined()
+    expect(effectiveTrackedFields(hiddenWolf, state)).toEqual(
+      hiddenWolf.trackedFields,
+    )
   })
 })
 
