@@ -54,6 +54,17 @@ function startPhysicalGame() {
   return view
 }
 
+function setCopiedTarget(seat: number, target: number) {
+  fireEvent.click(screen.getByRole('button', { name: `座位 ${seat} 詳情` }))
+  fireEvent.change(
+    within(
+      screen.getByRole('dialog', { name: `座位 ${seat} 詳情` }),
+    ).getByLabelText(`座位 ${seat} 模仿對象`),
+    { target: { value: String(target) } },
+  )
+  fireEvent.click(screen.getByRole('button', { name: '關閉' }))
+}
+
 function openReveal(seat: number, label: string): HTMLElement {
   fireEvent.click(
     screen.getByRole('button', { name: `座位 ${seat} ${label}` }),
@@ -441,6 +452,81 @@ describe('App', () => {
     )
 
     expect(within(seatCard(1)).queryByText(/模仿/)).not.toBeInTheDocument()
+  })
+
+  it('shows the copied target full screen when its tag is tapped', () => {
+    startPhysicalGame()
+    setCopiedTarget(1, 4)
+
+    const copiedTag = within(seatCard(1)).getByRole('button', {
+      name: '座位 1 模仿 4 號 預言家',
+    })
+    fireEvent.click(copiedTag)
+
+    const copied = screen.getByRole('dialog', { name: '座位 1 模仿對象' })
+    expect(within(copied).getByText('座位 1 · 模仿 4 號')).toBeInTheDocument()
+    expect(within(copied).getByText('好人陣營/神職')).toBeInTheDocument()
+    expect(
+      within(copied).getByRole('heading', { name: '預言家' }),
+    ).toBeInTheDocument()
+
+    dismissReveal(copied)
+
+    fireEvent.click(copiedTag)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('reflects the copied seat role change in the copied target display', () => {
+    startPhysicalGame()
+    setCopiedTarget(1, 4)
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 4 詳情' }))
+    fireEvent.change(screen.getByLabelText('座位 4 角色'), {
+      target: { value: 'villager' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '關閉' }))
+
+    fireEvent.click(
+      within(seatCard(1)).getByRole('button', {
+        name: '座位 1 模仿 4 號 平民',
+      }),
+    )
+
+    const copied = screen.getByRole('dialog', { name: '座位 1 模仿對象' })
+    expect(within(copied).getByText('好人陣營/平民')).toBeInTheDocument()
+    expect(
+      within(copied).getByRole('heading', { name: '平民' }),
+    ).toBeInTheDocument()
+
+    dismissReveal(copied)
+  })
+
+  it('shows 未指定 in the copied target display when the copied seat has no role', () => {
+    startPhysicalGame()
+    setCopiedTarget(1, 4)
+
+    fireEvent.click(screen.getByRole('button', { name: '座位 4 詳情' }))
+    fireEvent.change(screen.getByLabelText('座位 4 角色'), {
+      target: { value: '' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '關閉' }))
+
+    fireEvent.click(
+      within(seatCard(1)).getByRole('button', {
+        name: '座位 1 模仿 4 號 未指定',
+      }),
+    )
+
+    const copied = screen.getByRole('dialog', { name: '座位 1 模仿對象' })
+    expect(
+      within(copied).getByRole('heading', { name: '未指定' }),
+    ).toBeInTheDocument()
+    expect(
+      within(copied).queryByText('好人陣營/神職'),
+    ).not.toBeInTheDocument()
+
+    dismissReveal(copied)
   })
 
   it('shows three used flags and six table states as checkboxes in the seat sheet', () => {

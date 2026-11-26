@@ -52,10 +52,24 @@ export default function DashboardScreen({
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [openSeatNumber, setOpenSeatNumber] = useState<number | null>(null)
   const [reveal, setReveal] = useState<ActiveReveal | null>(null)
+  const [copiedSeatNumber, setCopiedSeatNumber] = useState<number | null>(null)
   const alive = game.seats.filter((seat) => !seat.out).length
+  const copiedTarget =
+    copiedSeatNumber === null
+      ? null
+      : (game.seats[copiedSeatNumber - 1]?.copiedTarget ?? null)
+  const copiedTargetRole =
+    copiedTarget === null
+      ? undefined
+      : getRole(game.seats[copiedTarget - 1]?.roleId ?? '')
 
   useEffect(() => {
-    if (!confirmingReset && openSeatNumber === null && reveal === null) {
+    if (
+      !confirmingReset &&
+      openSeatNumber === null &&
+      reveal === null &&
+      copiedSeatNumber === null
+    ) {
       return
     }
     function onKeyDown(event: KeyboardEvent) {
@@ -63,11 +77,12 @@ export default function DashboardScreen({
         setConfirmingReset(false)
         setOpenSeatNumber(null)
         setReveal(null)
+        setCopiedSeatNumber(null)
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [confirmingReset, openSeatNumber, reveal])
+  }, [confirmingReset, openSeatNumber, reveal, copiedSeatNumber])
 
   return (
     <main className="shell game">
@@ -124,17 +139,6 @@ export default function DashboardScreen({
                 label: tableState.label,
                 className: 'tag--state',
               })),
-              ...(seat.copiedTarget === null
-                ? []
-                : [
-                    {
-                      key: 'copied',
-                      label: `模仿 ${seat.copiedTarget} 號 · ${
-                        copiedRole?.name ?? '未指定'
-                      }`,
-                      className: 'tag--copied',
-                    },
-                  ]),
             ]
             return (
               <article
@@ -159,19 +163,39 @@ export default function DashboardScreen({
                   </span>
                   <span className="game-seat__role">{role?.name ?? '—'}</span>
                   <span className="game-seat__camp">{role?.camp ?? '—'}</span>
-                  {tags.length > 0 ? (
-                    <span className="game-seat__tags">
-                      {tags.map((tag) => (
-                        <i className={tag.className} key={tag.key}>
-                          {tag.label}
-                        </i>
-                      ))}
-                    </span>
-                  ) : null}
                   {seat.out ? (
                     <span className="game-seat__out-marker">已出局</span>
                   ) : null}
                 </button>
+                {tags.length > 0 || seat.copiedTarget !== null ? (
+                  <div
+                    className="game-seat__tags"
+                    onClick={() => setOpenSeatNumber(seatNumber)}
+                  >
+                    {tags.map((tag) => (
+                      <i className={tag.className} key={tag.key}>
+                        {tag.label}
+                      </i>
+                    ))}
+                    {seat.copiedTarget !== null ? (
+                      <button
+                        type="button"
+                        className="tag--copied"
+                        aria-haspopup="dialog"
+                        aria-label={`座位 ${seatNumber} 模仿 ${
+                          seat.copiedTarget
+                        } 號 ${copiedRole?.name ?? '未指定'}`}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setCopiedSeatNumber(seatNumber)
+                        }}
+                      >
+                        模仿 {seat.copiedTarget} 號 ·{' '}
+                        {copiedRole?.name ?? '未指定'}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
                 <button
                   type="button"
                   className={`game-seat__out-toggle${seat.out ? ' is-on' : ''}`}
@@ -234,6 +258,15 @@ export default function DashboardScreen({
           onDismiss={() => setReveal(null)}
         />
       ) : null}
+
+      {copiedSeatNumber !== null && copiedTarget !== null ? (
+        <CopiedTargetScreen
+          seat={copiedSeatNumber}
+          target={copiedTarget}
+          role={copiedTargetRole}
+          onDismiss={() => setCopiedSeatNumber(null)}
+        />
+      ) : null}
     </main>
   )
 }
@@ -252,17 +285,65 @@ function RevealScreen({ seat, kind, role, onDismiss }: RevealScreenProps) {
     return null
   }
   return (
+    <JudgeRevealScreen
+      label={`座位 ${seat} ${label}`}
+      kicker={`座位 ${seat} · ${label}`}
+      camp={role?.camp}
+      result={result}
+      onDismiss={onDismiss}
+    />
+  )
+}
+
+interface CopiedTargetScreenProps {
+  seat: number
+  target: number
+  role: Role | undefined
+  onDismiss: () => void
+}
+
+function CopiedTargetScreen({
+  seat,
+  target,
+  role,
+  onDismiss,
+}: CopiedTargetScreenProps) {
+  return (
+    <JudgeRevealScreen
+      label={`座位 ${seat} 模仿對象`}
+      kicker={`座位 ${seat} · 模仿 ${target} 號`}
+      camp={role?.camp}
+      result={role?.name ?? '未指定'}
+      onDismiss={onDismiss}
+    />
+  )
+}
+
+interface JudgeRevealScreenProps {
+  label: string
+  kicker: string
+  camp: string | undefined
+  result: string
+  onDismiss: () => void
+}
+
+function JudgeRevealScreen({
+  label,
+  kicker,
+  camp,
+  result,
+  onDismiss,
+}: JudgeRevealScreenProps) {
+  return (
     <div
       className="judge-reveal"
       role="dialog"
       aria-modal="true"
-      aria-label={`座位 ${seat} ${label}`}
+      aria-label={label}
       onClick={onDismiss}
     >
-      <p className="judge-reveal__kicker">
-        座位 {seat} · {label}
-      </p>
-      {role ? <p className="judge-reveal__camp">{role.camp}</p> : null}
+      <p className="judge-reveal__kicker">{kicker}</p>
+      {camp ? <p className="judge-reveal__camp">{camp}</p> : null}
       <h1>{result}</h1>
       <button type="button" autoFocus onClick={onDismiss}>
         收起

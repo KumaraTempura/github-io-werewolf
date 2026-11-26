@@ -786,12 +786,14 @@ optgroup {
   margin-top: 4px;
 }
 
-.game-seat__tags i {
+.game-seat__tags i,
+.game-seat__tags button {
   padding: 2px 5px;
   border: 1px solid var(--line);
   border-radius: 4px;
   background: #0b1120;
   color: var(--muted);
+  font: inherit;
   font-size: 9px;
   font-style: normal;
   letter-spacing: 0.02em;
@@ -808,8 +810,19 @@ optgroup {
 }
 
 .game-seat__tags .tag--copied {
+  min-height: 22px;
+  padding: 4px 7px;
   border-color: #3a4a6e;
   color: #a9bdf0;
+  font-size: 10px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.game-seat__tags .tag--copied:hover {
+  border-color: #5f78b3;
+  color: #d3e0ff;
 }
 
 .sheet-backdrop {
